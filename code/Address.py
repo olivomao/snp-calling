@@ -20,7 +20,7 @@ if en_debug==0:
     Default_Ref_Path = '/Users/Soheil/Dropbox/Transcriptome/SNP-Calling-Summer15/data'
 else:    
     #modified paths -- server side
-    isServerSide = True #False
+    isServerSide = False #False
     ServerNum = 1
     
     if isServerSide and ServerNum==1:
@@ -86,7 +86,8 @@ else:
         #PicardPath = '/Users/Soheil/Documents/Bioinformatics/picard-tools-1.102/picard-tools-1.102'
         # Default_Ref_Path = '/Users/Soheil/Documents/Bioinformatics/Simulation/Chr15-new'
         #Default_Ref_Path = '/home/olivo/Desktop/SNP-Calling-Summer15/data_0806_modi/'
-        Default_Proj_Path = '/home/olivo/Desktop/SNP-Calling-Summer15/'
+        #Default_Proj_Path = '/home/olivo/Desktop/SNP-Calling-Summer15/'
         #Default_Ref_Path = '/home/olivo/Desktop/SNP-Calling-Summer15/data_0814_stat/' #en_debug_0814
         Default_Ref_Path = '/home/olivo/Desktop/SNP-Calling-Summer15/data_SNP20_Reads100K/' #data_0814_stat/snp_analysis/use_data_0814/' #en_debug_0814
+        Default_Ref_Path = '/home/olivo/Documents/SNP-Calling/' 
         #"""
