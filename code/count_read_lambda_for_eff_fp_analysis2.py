@@ -1,3 +1,10 @@
+"""
+a debug/dmp version for count_read_lambda
+- unnecessary codes not executed for efficient run
+- for certain pos, dmp aligned reads over it, as well as each read's alt mapping info
+- 
+"""
+
 from itertools import *
 from test import *
 from read import *
@@ -14,7 +21,7 @@ ACGT = ("A", "C", "G", "T")
 BASES = {"A": 0, "C": 1, "G": 2, "T": 3}
 NUM_TO_BASE = {0: "A", 1: "C", 2: "G", 3: "T"}
 
-def update_counts_no_alt_mapping(ref, D, positions, counts, read_group):
+def update_counts_no_alt_mapping(ref, D, positions, counts, read_group, counts_alt):
     #pdb.set_trace() #to debug
     #lp = len(positions[0])
     for position in positions[0]:
@@ -42,12 +49,16 @@ def update_counts_no_alt_mapping(ref, D, positions, counts, read_group):
                 md_fp_dmp_file.write('cur ref L:%.2f\n\n'%float(D.get(genome_pos,0)))
                 
                 #pdb.set_trace()
+                
             read_res = position[1]
             #pdb.set_trace()
             Lsum = "%.2f"%float(D.get(genome_pos, 0))
             read_res[3] = Lsum
             count = counts.setdefault(genome_pos, [])
-            count.append(read_res)    
+            count.append(read_res)
+            
+            #pdb.set_trace()            
+            counts_alt.setdefault(genome_pos, {})
     return
 
 def update_counts_with_alt_mapping(ref, D, positions, counts, read_group):
@@ -112,7 +123,7 @@ def update_counts_with_alt_mapping(ref, D, positions, counts, read_group):
             exps.append((ref[i], float(D.get(i, 0))))
 
         L = [sum(e[1] for e in exps if e[0] == x) for x in ACGT]
-        Lsum = sum(L)
+        Lsum = sum(L)        
         
         if do_debug==True and found_loci==1:
             #pdb.set_trace()
@@ -140,7 +151,186 @@ def update_counts_with_alt_mapping(ref, D, positions, counts, read_group):
             count.append(r)    
     return
 
-def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt'):
+# function needed for dir_alt_map
+def get_directions(read_group):
+    directions = [] #record direction info +/- of aligned reads from read_group
+    num_pos = 0
+    num_neg = 0
+
+    for r in read_group:
+        if r.is_reversed():
+            directions.append('-')
+            num_neg += 1
+        else:
+            directions.append('+')
+            num_pos += 1
+    
+    return [directions, num_neg, num_pos]
+
+def get_comp_base(base):
+    res = ''
+    if   base == 'A':
+        res = 'T'
+    elif base == 'C':
+        res = 'G'
+    elif base == 'T':
+        res = 'A'
+    elif base == 'G':
+        res = 'C'
+    else:
+        print('exception at get_comp_base, base=%s'%base)
+        pdb.set_trace()
+    return res
+# function needed for dir_alt_map
+# read_positions = [(42841071, ['T', 'I', '0', '0']), (42841072, ['G', 'I', '0', '0']), ...]
+# => 100 items, may contain 'None' object generated in increament_read
+def re_order_positions(read_positions, direction):
+    res = []
+    if direction == '+':
+        L = len(read_positions)
+        for i in range(L):
+            rp = read_positions[i]
+            if rp:
+                pos = rp[0]
+                read_res = rp[1]
+                res.append([pos, read_res, '+'])
+            else: #None
+                #pdb.set_trace()
+                res.append(rp)
+    else:
+        L = len(read_positions)
+        for i in range(L):
+            rp = read_positions[L-1-i]
+            if rp:
+                pos = rp[0]
+                read_res = rp[1]
+                res.append([pos, read_res, '-'])
+            else:
+                #pdb.set_trace()
+                res.append(rp)
+    return res
+    
+# function needed for dir_alt_map
+def update_counts_with_dir_alt_mapping(ref, D, positions, counts, read_group, directions=[], counts_alt=None):
+    
+    #pdb.set_trace() #to debug
+    
+    for i in range(len(directions)):
+        positions[i] = re_order_positions(positions[i], directions[i])
+    
+    #pdb.set_trace()
+
+    for t in zip(*positions): # locii all correlated
+    
+        if do_debug == True:
+            found_loci = 0
+        
+        exps = []
+        
+        # filter out None and insertions/deletions
+        f = [read_base for read_base in t if (read_base and read_base[1][0] in BASES)]
+        if not f:
+            continue
+
+        ##merge same pos
+        #pdb.set_trace()
+        
+        g = []
+        pos_list = []
+        for read_base in f:
+            
+            if do_debug==True and read_base[0] == md_fp_loc:
+                found_loci = 1
+                #pdb.set_trace()
+                print('process new read alignment at %d\n'%md_fp_loc)
+                md_fp_dmp_file.write('== new read alignment ==\n')
+                N_rg = len(read_group)
+                for i_rg in range(N_rg):
+                    md_fp_dmp_file.write('read_line:\n%s\n'%read_group[i_rg].line)
+                    stt_pos = read_group[i_rg].pos
+                    curr_pos = f[i_rg][0]
+                    try:
+                        curr_base = read_group[i_rg].read[curr_pos-stt_pos]  
+                    except:
+                        curr_base = '?'
+                    md_fp_dmp_file.write('stt pos:%d\n'%stt_pos)
+                    md_fp_dmp_file.write('cur pos:%d\n'%curr_pos)
+                    md_fp_dmp_file.write('cur read base:%s\n'%curr_base)
+                    md_fp_dmp_file.write('cur ref base:%s\n'%ref[curr_pos])
+                    md_fp_dmp_file.write('cur ref L:%.2f\n\n'%float(D.get(curr_pos,0)))
+                
+                #pdb.set_trace()
+                
+            if read_base[0] not in pos_list:
+                g.append(read_base)
+                pos_list.append(read_base[0])
+            #else:
+            #    print('debug here')
+            #    pdb.set_trace()
+        f = g
+
+        #if len(f)>1:
+        #    pdb.set_trace()
+
+        #pdb.set_trace()
+        """
+        to handle dir alt map here carefully
+        """
+        
+        for gp, r, d in f:
+            exps.append((ref[gp].upper(), float(D.get(gp, 0)), d)) #e.g. (A, 120, '+')
+        
+        L_pos = [sum(e[1] for e in exps if e[0]==x and e[2]=='+') for x in ACGT]
+        L_neg = [sum(e[1] for e in exps if e[0]==x and e[2]=='-') for x in ACGT]
+        Lsum = sum(L_pos) + sum(L_neg)
+        
+        #if do_debug==True and found_loci==1:
+            #pdb.set_trace()
+        #    md_fp_dmp_file.write('L=%s\n'%repr(L))
+        #    md_fp_dmp_file.write('Lsum=%s\n\n'%repr(Lsum))
+            
+        #    print('manual debug here (L info for inv/non-inv read alignments)')
+        #    pdb.set_trace()
+            
+        #    found_loci = 0
+
+        
+        for gp, r, d in f:
+            
+            ref_base = ref[gp].upper()
+            aligned_base = r[0].upper()
+            
+            if d=='+':             
+                Lsum_y = L_pos[BASES[aligned_base]] + L_neg[BASES[get_comp_base(aligned_base)]]                
+            else:# d=='-'
+                Lsum_y = L_pos[BASES[get_comp_base(aligned_base)]] + L_neg[BASES[aligned_base]]
+            L0 = float(D.get(gp,0))
+            
+            if aligned_base == ref_base:
+                r[2] = "%.2f" % (Lsum_y-L0) #excluding lambda zero
+            else:
+                r[2] = "%.2f" % Lsum_y #including lambda zero
+            r[3] = "%.2f" % Lsum
+            
+            count = counts.setdefault(gp, [])
+            count.append(r)
+        
+        """
+        add alt mapping info in counts_alt
+        """
+        
+        for gp1, r1, d1 in f:
+            
+            altCount = counts_alt.setdefault(gp1, {})
+            
+            for gp2, r2, d2 in f:                
+                if gp2 != gp1 and gp2 not in altCount:
+                    altCount[gp2] =  float(D.get(gp2, 0))
+            
+            #pdb.set_trace()
+    return
+    
+def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', count_dir='', num_p=1, seperate_regions=False):
     """Generate convenient count files
 
     Inputs:
@@ -169,31 +359,51 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt'):
     G = len(ref)
     
     print 'init ref done'
+    
     #pdb.set_trace()
+    use_RsemRes = False
+    if 'rsem' in cov_address:
+        use_RsemRes = True
+
     # initialize global position to expression level map
     exon_pos = [] # exon_pos[i] = j means global position i on the genome
-    exon_to_global = {}
+    #exon_to_global = {}
     j = 0 # corresponds to position j on the transcriptome
     D = {}
-    exon_start = []
-    exon_end = []
-    exon_acc_len = [0]
-    with open(cov_address) as cov_file:
-        for line in cov_file:
-            x = line.split()
-            exon_start.append(int(x[1]))
-            exon_end.append(int(x[2]) )
-            exon_acc_len.append(int(x[3]))
-            expression = x[4]
-            if 1: #en_debug == 0:
-                for i in range(int(x[1]), int(x[2])):
-                    D[i] = expression
-                    exon_pos.append(i)
-                    j +=1
-                    exon_to_global[i] = j
-            else:
-                #to make data structure more concise
-                continue
+    #exon_start = []
+    #exon_end = []
+    #exon_acc_len = [0]
+
+    if use_RsemRes == False:
+        with open(cov_address) as cov_file:
+            for line in cov_file:
+                x = line.split()
+                #exon_start.append(int(x[1]))
+                #exon_end.append(int(x[2]) )
+                #exon_acc_len.append(int(x[3]))
+                expression = x[4]
+                if 1: #en_debug == 0:
+                    for i in range(int(x[1]), int(x[2])):
+                        D[i] = expression
+                        exon_pos.append(i)
+                        j +=1
+                        #exon_to_global[i] = j
+                else:
+                    #to make data structure more concise
+                    continue
+    else: #use_RsemRes == True
+        with open(cov_address) as cov_file:
+            for line in cov_file:
+                x = line.split()
+                #pdb.set_trace()
+                e_pos = int(x[0])
+                e_lambda = float(x[1])
+                D[e_pos] = e_lambda #expression
+                exon_pos.append(e_pos)
+                j += 1
+                #exon_to_global[e_pos] = j
+    
+    #pdb.set_trace()
     G_eff = j # the total length of the exons
     print("total reference length", G)
     print("total exons length", G_eff)
@@ -219,6 +429,9 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt'):
         sorted_sam = reads
 
     def count(sam_address):
+        
+        #pdb.set_trace()
+        
         """Takes the given reads at sam_address and produces a count of bases
         D is map from genome location to rna location -
             if D is provided, it is assumed to be RNA reads.
@@ -229,6 +442,9 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt'):
         counts = dict()
         counts["insertions"] = dict()
         insertions = counts["insertions"]
+        
+        counts_alt = dict()
+        
         counter = 0 # just to report progress
 
         def properties(read):
@@ -376,21 +592,45 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt'):
                 splice_n = splice_n[0:-1]
                 splice_c = splice_c[0:-1]
                 #pdb.set_trace()
-                
-            if splice_c[0]=='S':
-                #pdb.set_trace()
-                tmp=splice_n[0]
-                splice_n = splice_n[1:]
-                splice_c = splice_c[1:]
-                read = read[tmp:]
-                quality_scores = quality_scores[tmp:]                
-            if splice_c[-1]=='S':
-                #pdb.set_trace()
-                tmp=splice_n[-1]
-                splice_n = splice_n[0:-1]
-                splice_c = splice_c[0:-1]
-                read = read[0:-tmp]
-                quality_scores = quality_scores[0:-tmp]                
+            
+            if True: #dir_alt_map == True:
+                read_pos = -1
+                genome_pos = pos - 1  
+                if splice_c[0]=='S':
+                    #pdb.set_trace()
+                    tmp=splice_n[0]
+                    splice_n = splice_n[1:]
+                    splice_c = splice_c[1:]
+                    #read = read[tmp:]                    
+                    #quality_scores = quality_scores[tmp:]
+                    read_pos = read_pos + tmp #make sure (1) read len is still 100 so that positions have len 100, 
+                                              #can be convenient for later dir_alt_map processing
+                                              #(2) read_pos is correct for 'S' condition
+                if splice_c[-1]=='S':
+                    #pdb.set_trace()
+                    #tmp=splice_n[-1]
+                    splice_n = splice_n[0:-1]
+                    splice_c = splice_c[0:-1]
+                    #read = read[0:-tmp]
+                    #quality_scores = quality_scores[0:-tmp]             
+            else:
+                read_pos = -1
+                genome_pos = pos - 1  
+                if splice_c[0]=='S':
+                    #pdb.set_trace()
+                    tmp=splice_n[0]
+                    splice_n = splice_n[1:]
+                    splice_c = splice_c[1:]
+                    read = read[tmp:]
+                    quality_scores = quality_scores[tmp:]                
+                if splice_c[-1]=='S':
+                    #pdb.set_trace()
+                    tmp=splice_n[-1]
+                    splice_n = splice_n[0:-1]
+                    splice_c = splice_c[0:-1]
+                    read = read[0:-tmp]
+                    quality_scores = quality_scores[0:-tmp]   
+                         
             
             positions = [None] * len(read)
             #pdb.set_trace()
@@ -399,8 +639,8 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt'):
             #    continue
             #else:
             if flag[-3] == '0':
-                read_pos = -1
-                genome_pos = pos - 1                
+                #read_pos = -1
+                #genome_pos = pos - 1                
                 
                 #if len(splice_n)>1:
                 #    pdb.set_trace()
@@ -532,7 +772,7 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt'):
                 sam_file.readline() # throw away the first line
             read_group = [] # temporarily stores reads
             for line in sam_file:
-                if line[0] != '@': # not a comment
+                if line[0] != '@' and line[0] != '\n': # not a comment
                     read = Read(line)
                     if not read_group or read_group[-1].id == read.id:
                         read_group.append(read)
@@ -581,21 +821,28 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt'):
                                         tmp_file.write('%d%d[%d]\n'%(count_i, count_j, len(read_group)))
                                         for tmp_r in read_group:
                                             tmp_file.write(' '.join(tmp_r.line)+'\n')
-                                    #count_multi = count_multi + len(read_group)                               
+                                    #count_multi = count_multi + len(read_group)
+                                if True: #dir_alt_map == True:
+                                    directions_info = get_directions(read_group)
+                                    directions = directions_info[0]
+                                    num_neg = directions_info[1]
+                                    num_pos = directions_info[2]
+                                    
                                 positions = [increment_by_read(r, M) for r in read_group] #counts updated here
                                 if len(positions)==0:
                                     #empty read_group
                                     continue
                                     
                                 elif len(positions) == 1:
-                                    #if do_debug_for_loc_pc == False:
-                                    update_counts_no_alt_mapping(ref, D, positions, counts, read_group)
+                                    update_counts_no_alt_mapping(ref, D, positions, counts, read_group, counts_alt)
                                     
                                 elif len(positions) > 1: # deal with repeat regions
                                     #print('debug: deal with repeat regions')
                                     #pdb.set_trace()
-                                    #if do_debug_for_loc_pc == False:
-                                    update_counts_with_alt_mapping(ref, D, positions, counts, read_group)
+                                    if True: #dir_alt_map == True:
+                                        update_counts_with_dir_alt_mapping(ref, D, positions, counts, read_group, directions, counts_alt)
+                                    else:
+                                        update_counts_with_alt_mapping(ref, D, positions, counts, read_group)
                                     
                                 else:
                                     print('update counts exception: unexpected len(positions)')
@@ -629,18 +876,27 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt'):
             for split in segment_split:
                 M = len(split)
                 groups = [split] #[[r for r in split if not r.is_reversed()], [r for r in split if r.is_reversed()]]
-                for read_group in groups:                             
+                for read_group in groups: 
+                    if True: #dir_alt_map == True:
+                        directions_info = get_directions(read_group)
+                        directions = directions_info[0]
+                        num_neg = directions_info[1]
+                        num_pos = directions_info[2]
+                            
                     positions = [increment_by_read(r, M) for r in read_group] #counts updated here
                     if len(positions)==0:
                         continue
                     
                     elif len(positions) == 1:
-                        update_counts_no_alt_mapping(ref, D, positions, counts, read_group)
+                        update_counts_no_alt_mapping(ref, D, positions, counts, read_group, counts_alt)
                         
                     elif len(positions) > 1: # deal with repeat regions
                         #print('debug: deal with repeat regions')
                         #pdb.set_trace()
-                        update_counts_with_alt_mapping(ref, D, positions, counts, read_group)
+                        if True: #dir_alt_map == True:
+                            update_counts_with_dir_alt_mapping(ref, D, positions, counts, read_group, directions, counts_alt)
+                        else:
+                            update_counts_with_alt_mapping(ref, D, positions, counts, read_group)
                         
                     else:
                         print('update counts exception: unexpected len(positions)')
@@ -675,56 +931,144 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt'):
         
 
         print("Done processing " + sam_address)
-        return counts
+        return [counts, counts_alt]
     
-    def dump(counts, file):
-        pdb.set_trace()
-        with open(file, 'w+') as outfile:
-            def println(i, count, e):
+    def dump(counts, file, num_p=1, seperate_regions=False, counts_alt=None):
+        
+        def println(i, count, e, of):
                 reference_base = ref[i]
-                outfile.write(str(e) + "\t")
-                outfile.write(str(i) + "\t") # reference position
-                outfile.write(reference_base + "\t")
-                outfile.write(str(round(float(D.get(i, "0")), 3))+ "\t") # expression level
+                of.write(str(e) + "\t")
+                of.write(str(i) + "\t") # reference position
+                of.write(reference_base + "\t")
+                of.write(str(round(float(D.get(i, "0")), 3))+ "\t") # expression level
                 if (count):
                     N_A = sum(1 for c in count if c[0] == "A")
                     N_C = sum(1 for c in count if c[0] == "C")
                     N_G = sum(1 for c in count if c[0] == "G")
                     N_T = sum(1 for c in count if c[0] == "T")
-                    outfile.write(str(N_A) + "\t")
-                    outfile.write(str(N_C) + "\t")
-                    outfile.write(str(N_G) + "\t")
-                    outfile.write(str(N_T) + "\t")
-                    outfile.write("\t".join([",".join(c) for c in count]))
-                outfile.write("\n")
+                    of.write(str(N_A) + "\t")
+                    of.write(str(N_C) + "\t")
+                    of.write(str(N_G) + "\t")
+                    of.write(str(N_T) + "\t")
+                    of.write("\t".join([",".join(c) for c in count]))
+                of.write("\n")
+                return
+        
+        def println2(i, count, e, of):
+
+                #if len(count)>1:
+                #    of.write('[%d]\t'%len(count))
+                #else:
+                #    of.write('[]\t')
+            
+                of.write(str(e) + "\t")
+                of.write(str(i) + ",") # reference position
+                of.write(str(round(float(D.get(i, "0")), 3))+ "\t") # expression level
+                
+                for gp, el in count.iteritems():
+                    of.write(str(gp) + ",")
+                    of.write(str(el) + "\t")
+                
+                of.write("\n")
+                return
+                
+        if seperate_regions==False: #non-parallel     
+        
+            #pdb.set_trace()
+            out_address_2 = file[:-4]+'_altInfo.txt' #for counts_alt
+            
+            #pdb.set_trace()
+            #with open(file, 'w+') as outfile:
+            outfile = open(file, 'w+') 
+            outfile2 = open(out_address_2, 'w+')
+            
             for i, j in enumerate(exon_pos):
                 x = counts.get(j, [])
-                println(j, x, i)
-        print(file + " written")
-        # with open('insertions' + file, 'w+') as outfile:
-        #     insertions = counts["insertions"]
-        #     for pos in insertions.iterkeys():
-        #         outfile.write(str(pos) + "\t")
-        #         outfile.write(str(round(float(D.get(pos, "0")), 3)))
-        #         outfile.write("\t")
-        #         outfile.write("\t".join([str(i) for i in map(",".join, insertions[pos])]))
-        #         outfile.write("\n")
-        # print('insertions' + file + " written")
-
-    counts = count(sorted_sam)
-    if do_debug == True:
-        md_fp_dmp_file.close()
-        pdb.set_trace()
-        
-    if en_debug==0:
-        dump(counts, working_dir + read_dir + "output/count.txt")
-    else:
-        read_name = reads.split("/")[-1]
-        out_address = reads[0:len(reads)-len(read_name)] + count_fn
+                println(j, x, i, outfile)
+                y = counts_alt.get(j, {}) #additional alt mapping info
+                println2(j, y, i, outfile2)
+                
+            outfile.close()
+            outfile2.close()
+            print(file + " written")
+            print(out_address_2 + "written")
+            # with open('insertions' + file, 'w+') as outfile:
+            #     insertions = counts["insertions"]
+            #     for pos in insertions.iterkeys():
+            #         outfile.write(str(pos) + "\t")
+            #         outfile.write(str(round(float(D.get(pos, "0")), 3)))
+            #         outfile.write("\t")
+            #         outfile.write("\t".join([str(i) for i in map(",".join, insertions[pos])]))
+            #         outfile.write("\n")
+            # print('insertions' + file + " written")
+        else: #seperate_regions==True
+            #pdb.set_trace()
+            
+            curr_f_limit = int(len(exon_pos)/num_p)+1            
+            f_pre = file[:-4] #addr without '.txt'
+            
+            path_info = f_pre.split('/')            
+            f_pre2_dir = '/'.join(path_info[:-3]) + '/' + path_info[-2] + '_altInfo/'
+            subprocess.call('mkdir -p '+f_pre2_dir, shell=True)
+            f_pre2 = f_pre2_dir + path_info[-1][:-2] + '_altInfo' + path_info[-1][len(path_info[-1])-2:]
+            #to store counts_alt seperatedly
+            
+            curr_f_idx = 0
+            curr_f_addr = f_pre + '_region_%02d.txt'%curr_f_idx
+            curr_f_addr2 = f_pre2 + '_region_%02d.txt'%curr_f_idx
+            
+            curr_f = open(curr_f_addr, 'w+')
+            curr_f2 = open(curr_f_addr2, 'w+')
+            
+            curr_f_counter = 0
+            
+            for i, j in enumerate(exon_pos):
+                x = counts.get(j, [])
+                println(j, x, i, curr_f)
+                
+                y = counts_alt.get(j, {}) #additional alt mapping info
+                println2(j, y, i, curr_f2)
+                
+                #if len(y)>1:
+                #    pdb.set_trace()
+                
+                curr_f_counter += 1
+                if curr_f_counter > curr_f_limit:
+                    curr_f.close()
+                    curr_f2.close()
+                    
+                    print('%s (and %s) written (%d pos)'%(curr_f_addr, curr_f_addr2, curr_f_counter))
+                    
+                    curr_f_idx += 1
+                    
+                    curr_f_addr = f_pre + '_region_%02d.txt'%curr_f_idx
+                    curr_f_addr2 = f_pre2 + '_region_%02d.txt'%curr_f_idx
+                    
+                    curr_f = open(curr_f_addr, 'w+')
+                    curr_f2 = open(curr_f_addr2, 'w+')
+                    
+                    curr_f_counter = 0
+            
+            if curr_f_counter <= curr_f_limit:
+                curr_f.close()
+                curr_f2.close()
+                print('%s (and %s) written (%d pos)'%(curr_f_addr, curr_f_addr2, curr_f_counter))
+                
         #pdb.set_trace()
-        print('dump: count file')
-        dump(counts, out_address) 
+        return #dump
+
+    [counts, counts_alt] = count(sorted_sam)
+
+    read_name = reads.split("/")[-1]
+    out_dir = reads[0:len(reads)-len(read_name)] + count_dir
+    subprocess.call('mkdir -p '+out_dir, shell=True)
+    out_address = out_dir + count_fn #for counts    
+    
+    print('dump: count file')
+    pdb.set_trace()
+    #dump(counts, out_address, num_p, seperate_regions, counts_alt) 
     del counts
+    del counts_alt
 
 """
 #reads = "../../Data/G_30000000-1/read_l100_sorted.sam"
@@ -744,21 +1088,22 @@ if __name__ == "__main__":
     if do_debug:
         #working_dir = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_0827_SNP1k_Reads10M/'
         #working_dir = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_0814/'
-        working_dir = '/home/olivo/Downloads/0907_count_alt_mapping/bkp/data_0814/'
-        #read_dir = "/tophat_out/"
+        #working_dir = '/home/olivo/Downloads/0907_count_alt_mapping/bkp/data_0814/'
+        working_dir = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_SNP20_Reads100K_diffMPExp/'
+        read_dir = "/tophat_out/"
         #read_dir = "data_GATK/1pass/"
-        read_dir = "data_GATK/2pass/"
+        #read_dir = "data_GATK/2pass/"
 
-        #reads = working_dir + read_dir + "accepted_hits.sam"
+        reads = working_dir + read_dir + "accepted_hits.sam"
         #reads = working_dir + read_dir + "Aligned.out.sam"
         #reads = working_dir + read_dir + "split.sam"
-        reads = working_dir + read_dir + "dedupped.sam"
+        #reads = working_dir + read_dir + "dedupped.sam"
         reference = working_dir + "Chr15.fa"
-        coverage = working_dir + "coverage.txt"
+        coverage = working_dir + "count_rsem.txt" #"coverage.txt"
         #count_fn = "/count_altMap_cross_check_star1pass_debug.txt"
-        count_fn = "/count_tmp_debug_0922.txt"
+        count_fn = "/count_accepted_hits.txt"
         
-        md_fp_loc = 28765945 #74536339 #45405535 #28765945 #28635981 #['A', 'G', 'r']
+        md_fp_loc = 30922906 #26361326 #74536339 #45405535 #28765945 #28635981 #['A', 'G', 'r']
         md_fp_dmp_fn = reads + '.md_fp_dmp_' + repr(md_fp_loc) #e.g. /data_GATK/1pass/dedupped.sam.md_fp_dmp
         md_fp_dmp_file = open(md_fp_dmp_fn, 'w+')
 

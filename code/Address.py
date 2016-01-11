@@ -20,7 +20,7 @@ if en_debug==0:
     Default_Ref_Path = '/Users/Soheil/Dropbox/Transcriptome/SNP-Calling-Summer15/data'
 else:    
     #modified paths -- server side
-    isServerSide = False #False
+    isServerSide = True #False
     ServerNum = 1
     
     if isServerSide and ServerNum==1:
@@ -44,7 +44,9 @@ else:
         #Default_Ref_Path = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_0814/'
         #Default_Ref_Path = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_SNP1k_Reads10M/'
         #Default_Ref_Path = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_SNP20_Reads100K/'
-        Default_Ref_Path = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_SNP20_Reads100K_diffMPExp/'
+        #Default_Ref_Path = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_SNP20_Reads100K_diffMPExp/'
+        Default_Ref_Path = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_SNP20_Reads100K_diffMPExp_case1plus6/'
+        #Default_Ref_Path = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_SNP20_Reads100K_diffMPExp_case2/'
         #Default_Ref_Path = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_SNP20_Reads100K_debug_line_cover/'
         #"""  
     elif isServerSide and ServerNum==2:
