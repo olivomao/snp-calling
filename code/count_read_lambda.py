@@ -6,6 +6,11 @@ to be executed mainly instead of debug
 - 10/14: add counts_alt (additional info to check shadow snp etc)
 - 10/24: rsem (check cov file is ideal or from rsem in generate_count...)
          some variables are commented since no where used (e.g. exon_to_global)
+- 16/1/24: counts_alt:
+  -- the alt mappings of the reads at the loci are grouped based on the direction and base of the reads
+  -- relevant dump (println2) also modified
+
+
 """
 
 from itertools import *
@@ -225,14 +230,20 @@ def update_counts_with_dir_alt_mapping(ref, D, positions, counts, read_group, di
         """
         add alt mapping info in counts_alt
         """
-        
+
+        #if '+' in directions and '-' in directions:
+        #    pdb.set_trace()
+
         for gp1, r1, d1 in f:
             
             altCount = counts_alt.setdefault(gp1, {})
             
-            for gp2, r2, d2 in f:                
-                if gp2 != gp1 and gp2 not in altCount:
-                    altCount[gp2] =  float(D.get(gp2, 0))
+            newKey = d1 + r1[0].upper() #e.g. +A, -A, +T, -T, +C, -C, +G, -G
+            sub_altCount = altCount.setdefault(newKey, {})
+            
+            for gp2, r2, d2 in f:
+                if gp2 != gp1 and gp2 not in sub_altCount:
+                    sub_altCount[gp2] = float(D.get(gp2,0))
             
             #pdb.set_trace()
     return
@@ -265,7 +276,7 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
                 ref = ref + segment
     G = len(ref)
     
-    print 'init ref done'
+    print('init ref done')
     
     #pdb.set_trace()
     use_RsemRes = False
@@ -726,6 +737,7 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
                 of.write("\n")
                 return
         
+        """
         def println2(i, count, e, of):
 
                 #if len(count)>1:
@@ -741,6 +753,28 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
                     of.write(str(gp) + ",")
                     of.write(str(el) + "\t")
                 
+                of.write("\n")
+                return
+        """
+                
+        def println2(i, count, e, of):
+
+                #if len(count)>1:
+                #    of.write('[%d]\t'%len(count))
+                #else:
+                #    of.write('[]\t')
+            
+                of.write(str(e) + "\t")
+                of.write(str(i) + ",") # reference position
+                of.write(str(round(float(D.get(i, "0")), 3))+ "\t") # expression level
+                
+                for dB, sub_count in count.iteritems():
+                    #dB: direction + aligned base  e.g. +A, -A, +T, -T, +C, -C, +G, -G
+                    of.write("[%s:"%(dB))
+                    for gp, el in sub_count.iteritems():
+                        of.write(str(gp) + ",")
+                        of.write(str(el) + ",")
+                    of.write("]")
                 of.write("\n")
                 return
                 
@@ -837,6 +871,7 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
     out_address = out_dir + count_fn #for counts    
     
     print('dump: count file')
+    #pdb.set_trace()
     dump(counts, out_address, num_p, seperate_regions, counts_alt) 
     del counts
     del counts_alt

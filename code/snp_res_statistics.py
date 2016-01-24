@@ -10,6 +10,12 @@ from operator import itemgetter, attrgetter
 from itertools import izip
 from scipy.stats import poisson
 
+"""
+16/1/24: 
+- snp filtering based on modified expression levels of alt mapping
+  (the alt mappings of the reads at the loci are grouped based on the direction and base of the reads)
+"""
+
 def get_snps(snp_dic, snp_addr, tag=''):
     
     """
@@ -245,7 +251,103 @@ def do_snp_res_statistics(snp_res_address, snp_m_address, snp_p_address, snp_res
     res_file.close()
     
     return [m_snps_cd, m_snps_md, p_snps_cd, p_snps_md, r_snps_fp]
+
+def filter_snp_lam_half_filt2(snp_res_address,
+                              filt_snp_res_address,
+                              count_altInfo_address,
+                              count_abs_address): # check shadow snp from counts_altInfo.txt
     
+    bases = {"A": 0, "C": 1, "G": 2, "T": 3}
+    
+    print('lambda half filtering 2 (alt count modified)')
+    #pdb.set_trace()
+    
+    found_snps = {}
+    get_snps(found_snps, snp_res_address)
+    
+    num_removed_snps = 0
+    print('== filter_snp == ')
+    
+    #pdb.set_trace()
+    #with open(count_altInfo_address) as count_altInfo_file:
+    with open(count_altInfo_address) as count_altInfo_file, open(count_abs_address) as count_file:
+        #for line in count_altInfo_file:
+        for xline, yline in izip(count_altInfo_file, count_file):
+            
+            #pdb.set_trace()
+            
+            x = xline.split()
+            y = yline.split()
+
+            gp = int(y[1])
+            
+            if gp not in found_snps:
+                continue
+            
+            #gp considered as a snp
+            found_snp_base = found_snps[gp][0][1].upper()           
+            N_snp_base = y[4+bases[found_snp_base]]
+            N_snp_base = int(N_snp_base)
+            
+            #detected snp has alt mappings
+            if len(x)>=3:
+                #pdb.set_trace()
+                
+                positions = []
+                lambdas = []
+                poisson_pmf = []
+                
+                #add first itm
+                itm = x[1].split(',')
+                q = int(itm[0])
+                q_e = float(itm[1])
+                pmf = poisson(q_e/2.0).pmf(N_snp_base)
+                
+                positions.append(q)
+                lambdas.append(q_e)
+                poisson_pmf.append(pmf)
+                
+                #add alt mappings - find (pos,l) pairs
+                pos_el_dic = {}
+                itms = x[2].split('[')
+                for itm in itms:
+                    if len(itm)>0 and itm[1]==found_snp_base:
+                        #pdb.set_trace()
+                        pos_el = itm[3:len(itm)-2].split(',')
+                        for i in range(len(pos_el)/2):
+                            q = int(pos_el[i*2])
+                            q_e = float(pos_el[i*2+1])
+                            if q not in pos_el_dic: # +A and -A may have same alt mappings
+                                pos_el_dic[q]=q_e
+                                
+                #add alt mappings - calculate (pos, l) pairs
+                for q, q_e in pos_el_dic.iteritems():
+                    pmf = poisson(q_e/2.0).pmf(N_snp_base)
+                    positions.append(q)
+                    lambdas.append(q_e)
+                    poisson_pmf.append(pmf)
+                
+                #filter snp
+                if poisson_pmf.index(max(poisson_pmf)) != 0:
+                        #pdb.set_trace()
+                        del found_snps[gp]
+            
+    #pdb.set_trace()
+    filt_snp_res_file = open(filt_snp_res_address, 'w')
+    
+    for itm in found_snps.items():
+        #pdb.set_trace()
+        gp = itm[0]
+        rB = itm[1][0][0]
+        tB = itm[1][0][1]
+        filt_snp_res_file.write(str(gp)+'\t')
+        filt_snp_res_file.write(rB + '\t-->\t')
+        filt_snp_res_file.write(tB + '\t\n')
+    
+    filt_snp_res_file.close()
+    
+    return
+
 def filter_snp_lam_half_filt(snp_res_address,
                              filt_snp_res_address,
                              count_altInfo_address,
@@ -301,7 +403,7 @@ def filter_snp_lam_half_filt(snp_res_address,
                         poisson_pmf.append(pmf)
                     
                     if poisson_pmf.index(max(poisson_pmf)) != 0:
-                        pdb.set_trace()
+                        #pdb.set_trace()
                         del found_snps[p]
                 
                 """
@@ -323,7 +425,7 @@ def filter_snp_lam_half_filt(snp_res_address,
                         #pdb.set_trace() 
                 """
     #end with
-    pdb.set_trace()
+    #pdb.set_trace()
     filt_snp_res_file = open(filt_snp_res_address, 'w')
     
     for itm in found_snps.items():

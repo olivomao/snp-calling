@@ -5,6 +5,9 @@
     
 - main() is non-parallel version
 
+- 1/24: use filter_snp_lam_half_filt2 (altCount expression level focuses on snp base)
+
+
 """
 
 from Address import *
@@ -60,6 +63,7 @@ def do_gen_fil_cov(Stat_m,
         Stat_m.get_acc_cov_hd(COV_fn_m)
         Stat_m.set_acc_cov_qt()
         line_cover_threshold = Stat_m.acc_cover_qt[0]
+        coverage_address_m = Default_Ref_Path + COV_fn_m
         COV_fn_filtered_m = COV_fn_m[:-4] + '_qt'+repr(qt[0])+'.txt'
         coverage_address_filtered_m = Default_Ref_Path + COV_fn_filtered_m
         #use filtered coverage.txt to make snps generated in high exp-level region
@@ -69,6 +73,7 @@ def do_gen_fil_cov(Stat_m,
         Stat_p.get_acc_cov_hd(COV_fn_p)
         Stat_p.set_acc_cov_qt()
         line_cover_threshold = Stat_p.acc_cover_qt[0]
+        coverage_address_p = Default_Ref_Path + COV_fn_p
         COV_fn_filtered_p = COV_fn_p[:-4] + '_qt'+repr(qt[0])+'.txt'
         coverage_address_filtered_p = Default_Ref_Path + COV_fn_filtered_p
         #use filtered coverage.txt to make snps generated in high exp-level region
@@ -264,10 +269,11 @@ def do_filt_snp(sam_address,
         sam_dir = sam_address[0:len(sam_address)-len(sam_fn)]
         count_altInfo_address = sam_dir + '/count_'+sam_fn[:-4]+'_altInfo.txt'
         
-        filter_snp_lam_half_filt(snp_res_address,
-                                 filt_snp_res_address2,
-                                 count_altInfo_address,
-                                 count_abs_address)  
+        #altCount modified
+        filter_snp_lam_half_filt2(snp_res_address,
+                                  filt_snp_res_address2,
+                                  count_altInfo_address,
+                                  count_abs_address)  
     else:
         filt_snp_res_address2 = Default_Ref_Path + caller_op_snp_found_addr[:-4] + '_filt.txt'
         
@@ -347,9 +353,10 @@ def main(case = 6,
     [sam_address] = do_gen_read_alignment(ref_address,
                                readFQ_address,
                                case=6,
-                               flag=False)
+                               flag=True)
                           
     
+    #pdb.set_trace()
     
     gtf_address = Default_Ref_Path + '/hg19_chr15-UCSC.gtf'
     EXON_fn='/exon.txt'     
@@ -361,14 +368,15 @@ def main(case = 6,
                                     L,
                                     flag = False)
     
-    pdb.set_trace()
+    #pdb.set_trace()
     [count_abs_address] = do_gen_count(  sam_address,
                                          ref_address,                 
                                          #coverage_address,#use this if use_rsem==False
                                          count_rsem_address,
                                          use_rsem=True,
                                          flag=True)
-                                         
+    
+    #pdb.set_trace()
     [caller_op_addr, caller_op_exception_addr, caller_op_snp_found_addr] = do_caller( sam_address,
                                                                                       Threshold_num_reads,
                                                                                       count_abs_address,
@@ -380,7 +388,7 @@ def main(case = 6,
                                                         SNP_address_p,
                                                         flag=True)
                                                         
-    pdb.set_trace()
+    #pdb.set_trace()
     [filt_snp_res_address2] = do_filt_snp(  sam_address,
                                             caller_op_snp_found_addr,
                                             count_abs_address,
@@ -391,7 +399,10 @@ def main(case = 6,
                                                             Threshold_num_reads,
                                                             SNP_address_m,
                                                             SNP_address_p,
-                                                            flag=True)                
+                                                            flag=True)
+                                                            
+    #pdb.set_trace()
+    
     return
 
 def get_bam_from_gatk_best_practice():
