@@ -6,7 +6,7 @@
 - main() is non-parallel version
 
 - 1/24: use filter_snp_lam_half_filt2 (altCount expression level focuses on snp base)
-
+- 1/31: use 'dedupped.sam' instead of 'split.sam' to avoid 'H' pattern in Cigar String
 
 """
 
@@ -156,7 +156,8 @@ def do_gen_read_alignment(ref_address,
             get_bam_from_gatk_best_practice()
             
         flder = Default_Ref_Path +'/data_GATK/2pass/'
-        name = 'split.bam' #Aligned.out.sam        
+        #name = 'split.bam' #Aligned.out.sam
+        name = 'dedupped.bam'        
         #prepare sam file    
         if 'bam' in name:
             bam_address = flder + name
@@ -353,7 +354,7 @@ def main(case = 6,
     [sam_address] = do_gen_read_alignment(ref_address,
                                readFQ_address,
                                case=6,
-                               flag=True)
+                               flag=False)
                           
     
     #pdb.set_trace()
@@ -374,7 +375,7 @@ def main(case = 6,
                                          #coverage_address,#use this if use_rsem==False
                                          count_rsem_address,
                                          use_rsem=True,
-                                         flag=True)
+                                         flag=False)
     
     #pdb.set_trace()
     [caller_op_addr, caller_op_exception_addr, caller_op_snp_found_addr] = do_caller( sam_address,

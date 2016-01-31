@@ -3,6 +3,7 @@ a debug/dmp version for count_read_lambda
 - unnecessary codes not executed for efficient run
 - for certain pos, dmp aligned reads over it, as well as each read's alt mapping info
 - 
+- 16/1/31 to avoid null item (e.g. read_group[0]==None) in read_group by try & except
 """
 
 from itertools import *
@@ -90,8 +91,11 @@ def update_counts_with_alt_mapping(ref, D, positions, counts, read_group):
                 N_rg = len(read_group)
                 for i_rg in range(N_rg):
                     md_fp_dmp_file.write('read_line:\n%s\n'%read_group[i_rg].line)
-                    stt_pos = read_group[i_rg].pos
-                    curr_pos = f[i_rg][0]
+                    try:
+                        stt_pos = read_group[i_rg].pos
+                        curr_pos = f[i_rg][0]
+                    except:
+                        pdb.set_trace()
                     try:
                         curr_base = read_group[i_rg].read[curr_pos-stt_pos]  
                     except:
@@ -247,8 +251,13 @@ def update_counts_with_dir_alt_mapping(ref, D, positions, counts, read_group, di
                 N_rg = len(read_group)
                 for i_rg in range(N_rg):
                     md_fp_dmp_file.write('read_line:\n%s\n'%read_group[i_rg].line)
-                    stt_pos = read_group[i_rg].pos
-                    curr_pos = f[i_rg][0]
+                    try:
+                        stt_pos = read_group[i_rg].pos
+                        curr_pos = f[i_rg][0]
+                    except:
+                        md_fp_dmp_file.write('[exception]\n')
+                        continue
+                    
                     try:
                         curr_base = read_group[i_rg].read[curr_pos-stt_pos]  
                     except:
@@ -1089,21 +1098,26 @@ if __name__ == "__main__":
         #working_dir = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_0827_SNP1k_Reads10M/'
         #working_dir = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_0814/'
         #working_dir = '/home/olivo/Downloads/0907_count_alt_mapping/bkp/data_0814/'
-        working_dir = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_SNP20_Reads100K_diffMPExp/'
-        read_dir = "/tophat_out/"
+        #working_dir = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_SNP20_Reads100K_diffMPExp/'
+        working_dir = '/home/sreeramkannan/singleCell/SNP_Calling_Summer15/data_SNP20_Reads100K_diffMPExp_case1plus6_altCountModi_2ndrun/'
+        #read_dir = "/tophat_out/"
         #read_dir = "data_GATK/1pass/"
-        #read_dir = "data_GATK/2pass/"
+        read_dir = "data_GATK/2pass/"
 
-        reads = working_dir + read_dir + "accepted_hits.sam"
+        #reads = working_dir + read_dir + "accepted_hits.sam"
         #reads = working_dir + read_dir + "Aligned.out.sam"
         #reads = working_dir + read_dir + "split.sam"
-        #reads = working_dir + read_dir + "dedupped.sam"
+        reads = working_dir + read_dir + "dedupped.sam"
         reference = working_dir + "Chr15.fa"
         coverage = working_dir + "count_rsem.txt" #"coverage.txt"
         #count_fn = "/count_altMap_cross_check_star1pass_debug.txt"
-        count_fn = "/count_accepted_hits.txt"
+        #count_fn = "/count_accepted_hits.txt"
+        #count_fn = "/count_split.txt"
+        count_fn = "/count_dedupped.txt"
         
-        md_fp_loc = 30922906 #26361326 #74536339 #45405535 #28765945 #28635981 #['A', 'G', 'r']
+        #md_fp_loc = 30922906 #26361326 #74536339 #45405535 #28765945 #28635981 #['A', 'G', 'r']
+        #md_fp_loc = 20935096 #37188833 #34354849 #44776540
+        md_fp_loc = 74362860 #83100618 #82937286 #25333635 #70389192 #43069377
         md_fp_dmp_fn = reads + '.md_fp_dmp_' + repr(md_fp_loc) #e.g. /data_GATK/1pass/dedupped.sam.md_fp_dmp
         md_fp_dmp_file = open(md_fp_dmp_fn, 'w+')
 
