@@ -1,0 +1,37 @@
+# describe file formats, used by abSNP codes
+
+# bed file
+# 1-st line can be header or not
+col-0: chrom
+col-1: chromStart (0-based)
+col-2: chromEnd (excluded)
+col-3: trid
+
+# exon file (two exons may overlap)
+col-0: exon stt (0-based)
+col-1: exon end (excluded)
+col-2 etc: tr_id,tr_len_before_exon,tr_len_after_exon
+
+# exp file
+# 1-st line is header
+col-0: transcript id
+col-1: transcript length
+col-2: Dir
+col-3: number of Exons
+col-4: Position (stt 1-based, stt & end inclusive)
+col-5: GroupID?
+col-6: NIsoformInGroup?
+col-7: Explv
+
+# coverage file (ideal)
+col-0: index
+col-1: exon stt (0-based, same as exon file) 
+col-2: exon end (excluded)
+col-3: acc len
+col-4: abundance
+
+# snp file
+col-0: gPos (1-based)
+col-1: reference base 
+col-2: -->
+col-3: target base

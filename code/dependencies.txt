@@ -1,0 +1,5 @@
+# used tools & packages
+
+intervaltree
+- pip install intervaltree
+- e.g. find exon interval for a snp

@@ -1,0 +1,1 @@
+python sim_data_generator.py --reasign_exp -s tmp/snp.txt -b tmp/sorted.bed -e tmp/old_exp.txt -o tmp/new_exp.tx
