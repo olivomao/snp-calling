@@ -189,6 +189,8 @@ def load_snps(snp_file):
 
         cnt = 0
         for line in sf:
+            if line[0]=='#' or len(line.split())<4:
+                continue
             tokens = line.split()
             gPos = int(tokens[0])
             rB = tokens[1]

@@ -145,8 +145,11 @@ def BED2Exon1(BED_address, exon_address):
     
     counter =0
     bed_file = open(BED_address, 'rU')
+    nLines=sum([1 for l in open(BED_address,'r')]); T=nLines/100; p=0; q=0;
     for line in bed_file:
-        if line[0]=='#': continue
+        p += 1
+        if p>=T: p=0; q+=1; sys.stdout.write('\r'); sys.stdout.write('%d %% processed (BED2Exon1)'%q); sys.stdout.flush()
+        if line[0]=='#' or len(line.split())<4: continue
         
         x = line.split()
         tr_ID = x[3]

@@ -27,6 +27,9 @@ from progress.bar import Bar
 
 import csv
 
+from util import *
+import pdb
+
 #pdb.set_trace()
 
 #--------------------------------------------------------------------------------------------------------
@@ -104,11 +107,24 @@ def calcExpressionSum(exp_address):
     
     return exp_sum
 
+# calculate the sum of generated expressions, to be used for line coverage
+def calc_exp_sum(exp_address):
+    exp_sum = 0.0
+    with open(exp_address, 'r') as ef:
+        for line in ef:
+            if line[0]=='#' or len(line)<8: continue
+            explv = float(line.split()[7]) 
+            exp_sum += explv
+    #pdb.set_trace()
+    return exp_sum
+
+
 def ExpressionLevel2Coverage(BED_sorted_address, exp_address,
                              cov_fn='/coverage.txt', Stat=None,
                              Lr=100, tot_N=1000000, exp_sum=10):
     #pdb.set_trace()
-    b=re.search('([\S]+)/([\S]+)\.([\S]+)', BED_sorted_address)
+    #b=re.search('([\S]+)/([\S]+)\.([\S]+)', BED_sorted_address)
+    b=re.search('([\S]+)/([\S]+)\.([\S]+)', exp_address)
     coverage_address = b.group(1) + cov_fn
 
     
@@ -125,7 +141,11 @@ def ExpressionLevel2Coverage(BED_sorted_address, exp_address,
         
     Explevel_file = open(exp_address, 'rU')
     Explevel_file.readline() # because the first line is just header
-    BED_file = open(BED_sorted_address, 'rU')
+    if open(BED_sorted_address, 'rU').readline()[0]=='#':
+        BED_file = open(BED_sorted_address, 'rU')
+        BED_file.readline() #it's possible that the first line is header
+    else:
+        BED_file = open(BED_sorted_address, 'rU')
     
     Total_number_segments=0
 
@@ -176,6 +196,7 @@ def ExpressionLevel2Coverage(BED_sorted_address, exp_address,
     Explevel_file.close()
     BED_file.close()
     #pdb.set_trace() #debug  
+    print('%s written'%coverage_address)
     return coverage_address
 
 """    
@@ -331,8 +352,9 @@ def collapse(vector, Stat=None):
             Aggregate_len += pulse_sorted[i+1][0] - pulse_sorted[i][0]
             non_overlapping_exon.append([counter, pulse_sorted[i][0], pulse_sorted[i+1][0], Aggregate_len, Aggregate_cover])
             #track statistics
-            Stat.acc_cover.append(Aggregate_cover)
-            Stat.acc_sign.append(Aggregate_sign)
+            if Stat is not None:
+                Stat.acc_cover.append(Aggregate_cover)
+                Stat.acc_sign.append(Aggregate_sign)
             #else:
         #    pdb.set_trace()
         #    print('[debug] abs of agrre cover < threshold')
@@ -355,9 +377,6 @@ we want to avoid the situation that a same pos at m and p are mutated to differe
 def GenTarget(ref_address, coverage_address, Num_SNP, tar_address, SNP_address, genSNP=True ):
 
     if genSNP == False:
-        from util import *
-        import pdb
-
         cmd = 'cp %s %s'%(ref_address, tar_address)
         run_cmd(cmd)
 
