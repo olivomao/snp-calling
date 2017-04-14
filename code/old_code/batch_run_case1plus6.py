@@ -216,6 +216,57 @@ def enforce_unique_readID(readFQ_address, flag=True):
 
     return
 
+#modified based on enforce_unique_readID
+#
+#when reads are generated from m and p, it's possible there're generated reads of same id
+#to make all ids distinct so that the alignments from these reads are not considered as multiple alignment
+#
+#modified readBed_address will replace original file
+#logFile is readBed_address.uniqReadID.log (what read ids are modified)
+def enforce_unique_readID_bed(readBed_address, flag=True):
+
+    if flag==False:
+        return
+
+    src = readBed_address
+    dst = src + '.tmp'
+    log = src + '.uniqReadID.log'
+
+    names = {}
+
+    nLines=sum([1 for l in open(src,'r')]); T=nLines/100; p=0; q=0;
+    with open(src, 'r') as sF, \
+         open(dst, 'w') as dF, \
+         open(log, 'w') as lF:
+
+        for line in sF:
+            p += 1
+            if p>=T: p=0; q+=1; sys.stdout.write('\r'); sys.stdout.write('%d %% processed (enforce_unique_readID_bed)'%q); sys.stdout.flush()
+
+            if line[0]!='#' and len(line.strip())>0:
+                tokens = line.split()
+                #pdb.set_trace()
+                name = tokens[3]
+                if name in names:
+                    names[name]+=1
+                    name = name + '_copy_%d'%names[name]
+                    lF.write('duplicated readID modified as:'+name+'\n')
+                else:
+                    names[name]=0
+                    name = name
+                tokens[3] = name
+                dF.write('\t'.join(tokens)+'\n')
+            else:
+                dF.write(line)
+
+    #pdb.set_trace()
+
+    cmd = 'mv %s %s'%(dst, src)
+    print('')
+    run_cmd(cmd)
+
+    return
+
 def do_gen_read_alignment(ref_address,
                           readFQ_address,
                           case=6,
