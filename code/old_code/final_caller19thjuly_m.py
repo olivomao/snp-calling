@@ -83,7 +83,20 @@ def Prob_funct(Qi,R,Lamda_Knot, Ly, Lamda,X,Y):
  
         
     return math.log(Q)
-        
+
+'''
+calc prior prob of SNPs in log scale
+
+x - target base
+r - ref base
+'''
+def px(x, r, Ps=0.001):
+
+    if x==r:
+        return math.log(1-Ps)
+    else:
+        return math.log(Ps)
+
 def process_count_line(row, Threshold_num_reads=1):
 
     #pdb.set_trace()
@@ -122,7 +135,7 @@ def process_count_line(row, Threshold_num_reads=1):
             
         for m in range(1,len(b),4):
             if b[m]=='I':
-                Qi.append(0.999)
+                Qi.append(0.99)
                 
         for m in range(2,len(b),4):
             mi.append(int(b[m]))
@@ -141,7 +154,7 @@ def process_count_line(row, Threshold_num_reads=1):
         for i in range(0, len(a)):
             b=a[i].split(",")
             Y.append(b[0])
-            Qi.append(0.999) #convert b[1] to score in future
+            Qi.append(0.99) #convert b[1] to score in future
             #mi.append(int(b[2]))
             Ly.append(float(b[2])) #L_y
             #Lamda.append(int(b[3]))
@@ -155,12 +168,16 @@ def process_count_line(row, Threshold_num_reads=1):
     #pdb.set_trace()
     
     prob_A = (JP(Qi,Na,Nc,Ng,Nt,Ru,Lamda_Knot, Ly, Lamda,'A',Y))
+    prob_A += px('A', R)
 
     prob_C = (JP(Qi,Na,Nc,Ng,Nt,Ru,Lamda_Knot, Ly, Lamda,'C',Y))
+    prob_C += px('C', R)
 
     prob_G = (JP(Qi,Na,Nc,Ng,Nt,Ru,Lamda_Knot, Ly, Lamda,'G',Y))
+    prob_G += px('G', R)
 
     prob_T = (JP(Qi,Na,Nc,Ng,Nt,Ru,Lamda_Knot, Ly, Lamda,'T',Y))
+    prob_T += px('T', R)
 
     return [ref_pos, R, prob_A, prob_C, prob_G, prob_T] #=process_count_line(row)
 #----------------------------------------
