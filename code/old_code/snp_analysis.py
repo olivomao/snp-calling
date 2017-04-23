@@ -541,6 +541,34 @@ class SnpNodeDic():
 
         return
     '''
+    
+    #
+    #content_idx: 0,1,2 corresponding to snp w/ only uniq mapped reads, w/o uniq mapped reads and overall
+    #caller_idx: 0,1 corresponding to O, G
+    #returns related [cd, md, fp, toterr]
+    #
+    #in case of err (e.g. file not exist), return []
+    def extract_snpSum(self, file, content_idx, caller_idx):
+        res = []
+        try:
+            with open(file, 'r') as f:
+                line = ''
+                for i in range(content_idx):
+                    line = f.readline()
+                    line = f.readline()
+                line = f.readline()
+                line = f.readline()
+                if len(line.strip().split())>=8:
+                    vals = [int(v) for v in line.strip().split()]
+                    res = vals[0+4*caller_idx:4+4*caller_idx]
+                    return res
+                else:
+                    print('unexpected line: %s in extract_snpSum'%line)
+                    pdb.set_trace()
+                    return []
+        except:
+            return []
+
 
     #get mis-detection/false-positive summary
     #modified based on writeSnpSummary(self, args) to add stat for correct detection, tot error

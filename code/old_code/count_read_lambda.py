@@ -29,11 +29,14 @@ ACGT = ("A", "C", "G", "T")
 BASES = {"A": 0, "C": 1, "G": 2, "T": 3}
 NUM_TO_BASE = {0: "A", 1: "C", 2: "G", 3: "T"}
 
-def update_counts_no_alt_mapping(ref, D, positions, counts, read_group, counts_alt):
+#positions/D/counts: genome_pos 0-based
+#sel_snps_loc: genome_pos 1-based
+def update_counts_no_alt_mapping(ref, D, positions, counts, read_group, counts_alt, sel_snp_loc=None):
     #pdb.set_trace() #to debug
     #lp = len(positions[0])
     for position in positions[0]:
-        if position != None:
+        if position != None and ((sel_snp_loc is None) or (sel_snp_loc is not None and (position[0]) in sel_snp_loc)): #snp loc 0-based?
+            #pdb.set_trace()
             genome_pos = position[0]
             read_res = position[1]
             #pdb.set_trace()
@@ -160,7 +163,7 @@ def re_order_positions(read_positions, direction):
     return res
     
 # function needed for dir_alt_map
-def update_counts_with_dir_alt_mapping(ref, D, positions, counts, read_group, directions=[], counts_alt=None):
+def update_counts_with_dir_alt_mapping(ref, D, positions, counts, read_group, directions=[], counts_alt=None, sel_snp_loc=None):
     
     #pdb.set_trace() #to debug
     
@@ -225,14 +228,24 @@ def update_counts_with_dir_alt_mapping(ref, D, positions, counts, read_group, di
                 Lsum_y = L_pos[BASES[get_comp_base(aligned_base)]] + L_neg[BASES[aligned_base]]
             L0 = float(D.get(gp,0))
             
+            flag_alt = 0
             if aligned_base == ref_base:
                 r[2] = "%.2f" % (Lsum_y-L0) #excluding lambda zero
+                if Lsum_y-L0 != 0: flag_alt=1
             else:
                 r[2] = "%.2f" % Lsum_y #including lambda zero
+                if Lsum_y != 0: flag_alt=1
             r[3] = "%.2f" % Lsum
-            
-            count = counts.setdefault(gp, [])
-            count.append(r)
+
+            if (sel_snp_loc is None) or (sel_snp_loc is not None and (gp) in sel_snp_loc):#snp loc 0-based?
+                #if gp==84911835 or gp==84911836:
+                #    pdb.set_trace()
+                #if gp==82986260 and flag_alt==1:
+                #    pdb.set_trace()
+                count = counts.setdefault(gp, [])
+                count.append(r)
+            else:
+                continue
         
         """
         add alt mapping info in counts_alt
@@ -246,21 +259,30 @@ def update_counts_with_dir_alt_mapping(ref, D, positions, counts, read_group, di
         # at count_alt[gp1][+A]={gp2:lambda(gp2), ...} number of reads not indicated here
         # 
 
-        for gp1, r1, d1 in f:
-            
-            altCount = counts_alt.setdefault(gp1, {})
-            
-            newKey = d1 + r1[0].upper() #e.g. +A, -A, +T, -T, +C, -C, +G, -G (these are read bases)
-            sub_altCount = altCount.setdefault(newKey, {})
-            
-            for gp2, r2, d2 in f:
-                if gp2 != gp1 and gp2 not in sub_altCount:
-                    sub_altCount[gp2] = float(D.get(gp2,0))
-            
-            #pdb.set_trace()
+        if len(f)!=1: #it's possible that f has two same entries at first, and collapsed to one entry at g
+
+            for gp1, r1, d1 in f:
+
+                if (sel_snp_loc is None) or (sel_snp_loc is not None and (gp1) in sel_snp_loc):#snp loc 0-based?
+                    #pdb.set_trace()
+
+                    #if gp1==72582568: pdb.set_trace()
+                
+                    altCount = counts_alt.setdefault(gp1, {})
+                
+                    newKey = d1 + r1[0].upper() #e.g. +A, -A, +T, -T, +C, -C, +G, -G (these are read bases)
+                    sub_altCount = altCount.setdefault(newKey, {})
+                
+                    for gp2, r2, d2 in f:
+                        if gp2 != gp1 and gp2 not in sub_altCount:
+                            sub_altCount[gp2] = float(D.get(gp2,0))
+
+                else:
+                    continue
+
     return
 
-def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', count_dir='', num_p=1, seperate_regions=False):
+def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', count_dir='', num_p=1, seperate_regions=False, sel_snp_loc=None, isRsemSam=1):
     """Generate convenient count files
 
     Inputs:
@@ -269,6 +291,9 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
     cov_address: specifies abundance for each genome location
     count_fn and count_dir: output
     num_p and seperate_regions used for parallel purpose
+
+    sel_snps_loc: None or set of snp locations (1-based) for final snp analysis purpose
+    isRsemSam: 1(default) or 0. If the sam file provided is an intermediate product through RSEM quantification, we start filter read alignments of low ZW-values
 
     Outputs (all of these in the /output directory):
     
@@ -612,7 +637,11 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
                         # for rsem sam, discard alignments w/o zw or w/ zw<0.1
                         #if sum([1 for r in read_group if r.ZW<0.1])>0:
                         #    pdb.set_trace()
-                        read_group = [r for r in read_group if r.ZW>=0.1]###rsem sam only 
+                        if isRsemSam==1:
+                            if sel_snp_loc is None:
+                                read_group = [r for r in read_group if r.ZW>=0.1]###rsem sam only
+                            else: #for analysis purpose
+                                read_group = [r for r in read_group if r.ZW>0]###rsem sam only 
 
                         #if len(read_group)>0 and read_group[0].id=='uc002bna.2_e_32_chr15_89399479': pdb.set_trace()
 
@@ -677,13 +706,13 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
                                     continue
                                     
                                 elif len(positions) == 1:
-                                    update_counts_no_alt_mapping(ref, D, positions, counts, read_group, counts_alt)
+                                    update_counts_no_alt_mapping(ref, D, positions, counts, read_group, counts_alt, sel_snp_loc=sel_snp_loc)
                                     
                                 elif len(positions) > 1: # deal with repeat regions
                                     #print('debug: deal with repeat regions')
                                     #pdb.set_trace()
                                     if True: #dir_alt_map == True:
-                                        update_counts_with_dir_alt_mapping(ref, D, positions, counts, read_group, directions, counts_alt)
+                                        update_counts_with_dir_alt_mapping(ref, D, positions, counts, read_group, directions, counts_alt, sel_snp_loc=sel_snp_loc)
                                     else:
                                         update_counts_with_alt_mapping(ref, D, positions, counts, read_group)
                                     
@@ -718,7 +747,11 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
             # for rsem sam, discard alignments w/o zw or w/ zw<0.1
             #if sum([1 for r in read_group if r.ZW<0.1])>0:
             #    pdb.set_trace()
-            read_group = [r for r in read_group if r.ZW>=0.1]###rsem sam only 
+            if isRsemSam==1:
+                if sel_snp_loc is None:
+                    read_group = [r for r in read_group if r.ZW>=0.1]###rsem sam only
+                else: #for analysis purpose
+                    read_group = [r for r in read_group if r.ZW>0]###rsem sam only 
 
             '''
             sameZW_flag=True
@@ -761,13 +794,13 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
                             continue
                         
                         elif len(positions) == 1:
-                            update_counts_no_alt_mapping(ref, D, positions, counts, read_group, counts_alt)
+                            update_counts_no_alt_mapping(ref, D, positions, counts, read_group, counts_alt, sel_snp_loc=sel_snp_loc)
                             
                         elif len(positions) > 1: # deal with repeat regions
                             #print('debug: deal with repeat regions')
                             #pdb.set_trace()
                             if True: #dir_alt_map == True:
-                                update_counts_with_dir_alt_mapping(ref, D, positions, counts, read_group, directions, counts_alt)
+                                update_counts_with_dir_alt_mapping(ref, D, positions, counts, read_group, directions, counts_alt, sel_snp_loc=sel_snp_loc)
                             else:
                                 update_counts_with_alt_mapping(ref, D, positions, counts, read_group)
                             
@@ -806,9 +839,12 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
         print("Done processing " + sam_address)
         return [counts, counts_alt]
     
-    def dump(counts, file, num_p=1, seperate_regions=False, counts_alt=None):
+    def dump(counts, file, num_p=1, seperate_regions=False, counts_alt=None, sel_snp_loc=None):
         
         def println(i, count, e, of):
+                #if sel_snp_loc is not None and (i+1) not in sel_snp_loc:
+                #    return
+
                 reference_base = ref[i]
                 of.write(str(e) + "\t")
                 of.write(str(i) + "\t") # reference position
@@ -849,6 +885,9 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
                 
         def println2(i, count, e, of):
 
+                #if sel_snp_loc is not None and (i+1) not in sel_snp_loc:
+                #    return
+
                 #if len(count)>1:
                 #    of.write('[%d]\t'%len(count))
                 #else:
@@ -868,7 +907,33 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
                 of.write("\n")
                 return
                 
-        if seperate_regions==False: #non-parallel     
+        if sel_snp_loc is not None: #non-parallel, restricted to selected snps     
+        
+            #pdb.set_trace()
+            out_address_2 = file[:-4]+'_altInfo.txt' #for counts_alt
+            
+            #pdb.set_trace()
+            #with open(file, 'w+') as outfile:
+            outfile = open(file, 'w+') 
+            outfile2 = open(out_address_2, 'w+')
+
+            sel_snp_loc_list = sorted(list(sel_snp_loc))
+            #pdb.set_trace()
+            
+            for i in sel_snp_loc_list:
+                j = i #j = i-1 #1-based to 0-based #already 0-based?
+                #j-genomic location                
+                x = counts.get(j, [])
+                println(j, x, j, outfile)
+                y = counts_alt.get(j, {}) #additional alt mapping info
+                println2(j, y, j, outfile2)
+                
+            outfile.close()
+            outfile2.close()
+            print(file + " written")
+            print(out_address_2 + " written\n")
+
+        elif seperate_regions==False: #non-parallel     
         
             #pdb.set_trace()
             out_address_2 = file[:-4]+'_altInfo.txt' #for counts_alt
@@ -879,6 +944,7 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
             outfile2 = open(out_address_2, 'w+')
             
             for i, j in enumerate(exon_pos):
+                #j-genomic location                
                 x = counts.get(j, [])
                 println(j, x, i, outfile)
                 y = counts_alt.get(j, {}) #additional alt mapping info
@@ -956,15 +1022,102 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
     [counts, counts_alt] = count(sorted_sam)
 
     read_name = reads.split("/")[-1]
-    out_dir = reads[0:len(reads)-len(read_name)] + count_dir
+    
+    if sel_snp_loc is not None:
+        out_dir = count_dir
+    else:
+        out_dir = reads[0:len(reads)-len(read_name)] + count_dir
     subprocess.call('mkdir -p '+out_dir, shell=True)
     out_address = out_dir + count_fn #for counts    
     
     print('dump: count file')
     #pdb.set_trace()
-    dump(counts, out_address, num_p, seperate_regions, counts_alt) 
+    dump(counts, out_address, num_p, seperate_regions, counts_alt, sel_snp_loc=sel_snp_loc) 
     del counts
     del counts_alt
+
+'''
+usage:
+
+#generate count and count_alt selectively in order to analyze snps
+
+python count_read_lambda.py --gen_count_selectively
+                            -s0 snpFile0 [-s1 snpFile1 etc]
+                            --sam samFile [--isRsemSam 1/0 (default 1), ZW=0 filtered]
+                            --ref refGenome
+                            --cov covFile
+                            --countDir countDir
+                            --countFn countFn
+
+
+'''
+def gen_count_selectively(args):
+
+    dir_alt_map = True
+
+    i=0
+    snp_locations = set() #set of locations (1-based), regardless of snp files, pooled
+    while '-s%d'%i in args:
+        snpFile = args[args.index('-s%d'%i)+1]
+        with open(snpFile, 'r') as sF:
+            for line in sF:
+                if line[0] != '#' and len(line.split())==4:
+                    snp_locations.add(int(line.split()[0]))
+        print('%s processed'%snpFile)
+        i += 1
+    #pdb.set_trace()
+
+    samFile = args[args.index('--sam')+1]
+    refGenome = args[args.index('--ref')+1]
+    covFile = args[args.index('--cov')+1]
+    countDir = args[args.index('--countDir')+1]
+    countFn = args[args.index('--countFn')+1]
+
+    if '--isRsemSam' in args:
+        isRsemSam = int(args[args.index('--isRsemSam')+1])
+    else:
+        isRsemSam = 1 #s.t. we filter low ZW values
+
+    print('gen_count_selectively starts')
+
+    generate_count_file(samFile, refGenome, covFile, countFn, countDir, num_p=1, seperate_regions=False, sel_snp_loc=snp_locations, isRsemSam=isRsemSam)
+
+    print('gen_count_selectively ends')
+
+    return
+
+#parse a count_alt_line, return gPos (0-based), lambda, and number of multimappings (excluding itself)
+#
+#ref:
+#println2(i, count, e, of)
+def check_lambda_multimapping_per_line(count_alt_line):
+    #pdb.set_trace()
+    tokens = count_alt_line.split()
+    gPos = int(tokens[1].split(',')[0])
+    lam = float(tokens[1].split(',')[1])
+    num_multimapping = 0
+    if len(tokens)>=3:
+        alt_info = tokens[2]
+        alt_info = [s[3:len(s)-1] for s in alt_info.split('[') if s != '']
+        multi_locations = set()
+        for a1 in alt_info:
+            a1_split = a1.split(',')
+            for a2 in range(len(a1_split)/2):
+                gp = int(a1_split[a2*2])
+                multi_locations.add(gp)
+        num_multimapping = len(multi_locations)
+    return gPos, lam, num_multimapping
+
+#return res={key=gPos 0-based; val=[lambda, # mappings (excluding itself)]}
+def check_lambda_multimapping(count_alt_file):
+    res = {}
+    with open(count_alt_file, 'r') as f:
+        for line in f:
+            if line[0]=='#' or line.strip()=='': continue
+            [gPos, lam, num_multimapping] = check_lambda_multimapping_per_line(line)
+            res[gPos]=[lam, num_multimapping]
+    print('check_lambda_multimapping: %s done'%count_alt_file)
+    return res
 
 """
 #reads = "../../Data/G_30000000-1/read_l100_sorted.sam"
@@ -976,10 +1129,31 @@ coverage = sys.argv[3] # "G_30000000-1/coverage.txt"
 resolve_target(reads, reference, coverage)
 # AAA
 """
+'''
+usage:
+
+#generate count and count_alt selectively in order to analyze snps
+
+python count_read_lambda.py --gen_count_selectively
+                            -s0 snpFile0 [-s1 snpFile1 etc]
+                            --sam samFile [--isRsemSam 1/0 (default 1), ZW=0 filtered]
+                            --ref refGenome
+                            --cov covFile
+                            --countDir countDir
+                            --countFn countFn
+
+
+'''
 
 if __name__ == "__main__":
+
+    args = sys.argv
     
-    if len(sys.argv)<2: #non-parallel
+    if '--gen_count_selectively' in args:
+
+        gen_count_selectively(args)
+        
+    elif len(sys.argv)<2: #non-parallel
         
         dir_alt_map = True
     

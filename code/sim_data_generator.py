@@ -1,4 +1,4 @@
-import sys, pdb
+import sys, pdb, numpy
 from intervaltree import Interval, IntervalTree 
 
 from tool_address import FA2FQ_address
@@ -6,8 +6,9 @@ from tool_address import FA2FQ_address
 from old_code.batch_run_case1plus6 import enforce_unique_readID, enforce_unique_readID_bed
 from old_code.util import run_cmd
 from old_code.snp_oper import load_snps, gen_genome_of_snps
-from old_code.Synthesis import calc_exp_sum, ExpressionLevel2Coverage
+from old_code.Synthesis import calc_exp_sum, ExpressionLevel2Coverage, GenTarget
 from old_code.ReadProcess import BED2Exon1
+from old_code.debug_MACRO import FilterCoverage
 
 from old_code_multiShannon.sim_reads import sim_reads_g_b
 
@@ -15,6 +16,103 @@ def main():
 
     pdb.set_trace()
     
+    return
+
+#calculate the qt-percentile (0~99) value of the abundances in cov_file
+def calc_cover_thre(cov_file, qt):
+
+    #pdb.set_trace()
+
+    vals = []
+
+    with open(cov_file) as f:
+        for line in f:
+            x = line.split()
+            vals.append(float(x[4]))
+
+    coverThre = numpy.percentile(vals, qt)
+
+    #pdb.set_trace()
+
+    return coverThre 
+
+'''
+usage:
+
+python sim_data_generator.py
+--gen_sim_exp_snp_tar
+--bedSorted bedSorted
+-O outFolder (exp_m.txt, exp_p.txt; 
+              cov_m.txt, cov_p.txt; cov_m_<qt>.txt, cov_p_<qt>.txt;
+              SNP_m.txt, SNP_p.txt;
+              Tar_m.txt, Tar_p.txt)
+--qt qt (0~99; SNPs are generated at qt quantile of coverage regions)
+[-L readLen -N numReads] (used for cov calculation ==> NOT USED)
+--refGenome refGenome
+--NumSNP numSNP
+'''
+def gen_sim_exp_snp_tar(args):
+
+    #pdb.set_trace()
+
+    bedSorted = args[args.index('--bedSorted')+1]
+    outFolder = args[args.index('-O')+1]
+    qt = int(args[args.index('--qt')+1])
+
+    if '-L' in args:
+        L = int(args[args.index('-L')+1])
+    else:
+        L = 100
+
+    if '-N' in args:
+        N = int(args[args.index('-N')+1])
+    else:
+        N = 100000
+
+    refGenome = args[args.index('--refGenome')+1]
+
+    numSNP = int(args[args.index('--NumSNP')+1])
+
+
+    #output files
+    exp_m = '%s/exp_m.txt'%outFolder
+    exp_p = '%s/exp_p.txt'%outFolder
+
+    #generate expression
+    cmd = 'python tools/RNASeqReadSimulator/genexplvprofile.py %s > %s'%(bedSorted, exp_m)
+    run_cmd(cmd)
+
+    cmd = 'python tools/RNASeqReadSimulator/genexplvprofile.py %s > %s'%(bedSorted, exp_p)
+    run_cmd(cmd)
+
+    #exp --> cov
+    cov_m = ExpressionLevel2Coverage(bedSorted, exp_m, cov_fn='/coverage_m.txt', Stat=None)
+    cov_m_filt = cov_m[:-4]+'_%d.txt'%qt
+
+    cov_p = ExpressionLevel2Coverage(bedSorted, exp_p, cov_fn='/coverage_p.txt', Stat=None)
+    cov_p_filt = cov_p[:-4]+'_%d.txt'%qt
+
+    #cov --> cov_filt
+    coverThre_m = calc_cover_thre(cov_m, qt) ##
+    FilterCoverage(cov_m, cov_m_filt, coverThre_m)
+
+    coverThre_p = calc_cover_thre(cov_p, qt) ##
+    FilterCoverage(cov_p, cov_p_filt, coverThre_p)
+
+    #gen snps & tar
+    tar_address_m = '%s/Tar_m.txt'%outFolder
+    tar_address_p = '%s/Tar_p.txt'%outFolder
+
+    SNP_address_m = '%s/SNP_m.txt'%outFolder
+    SNP_address_p = '%s/SNP_p.txt'%outFolder
+
+    #pdb.set_trace()
+
+    GenTarget(refGenome, cov_m_filt, numSNP, tar_address_m, SNP_address_m, genSNP=True)
+    GenTarget(refGenome, cov_p_filt, numSNP, tar_address_p, SNP_address_p, genSNP=True)
+
+    #pdb.set_trace()
+
     return
 
 '''
@@ -1011,8 +1109,11 @@ if __name__ == "__main__":
 
     args = sys.argv
 
+    # generate simulated snps (exp --> snps and tar), as in batch_run_case1plus6
+    if '--gen_sim_exp_snp_tar' in args:
+        gen_sim_exp_snp_tar(args)
     # select snps (true snps --> restrict to snps of interest e.g. coding regions)
-    if '--sel_snps' in args:
+    elif '--sel_snps' in args:
         sel_snps(args)
     # select snps s.t. the input snps don't contain uncovered snps (indicated by an auxillary file)
     elif '--sel_snps_covered' in args:

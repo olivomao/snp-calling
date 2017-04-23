@@ -29,12 +29,16 @@ python snp_call_para.py  -r refAddress
                          -O outDir(not used)
                          -T threshold
                          -p num_p(i.e. parallel, >1 recommended)
+                         [-q num_q (i.e. p/q batches, q_jobs_parallel per batch)]
                          [--dupRun 1/0]
                          [--code_folder code_folder]
                          [--filt3_sameAb 1/0 (default 1)] [--filt3_rocT v1,v2,... (default 0,1)]
                          [--clear_intFiles 1/0 (default 0)]
 
 param:
+
+num_q: default=-1 (should be num_p but we need to pass num_q into seperate functions, so we fix as -1 as default first);
+       in case memory is not sufficient, for num_p cores, we do num_p/num_q batches, each of which runs num_q cores
 
 dupRun: 1 - is duplicated run, sam sep/ count made/ just need to do caller using different thresholds; default 0
 
@@ -61,6 +65,10 @@ def main(args):
     Threshold_num_reads = int(args[args.index('-T')+1])
     num_p = int(args[args.index('-p')+1])
 
+    if '-q' in args:
+      num_q = int(args[args.index('-q')+1])
+    else:
+      num_q = -1
 
     if '--dupRun' in args:
         dupRun = int(args[args.index('--dupRun')+1])
@@ -110,7 +118,8 @@ def main(args):
                                                           num_p,
                                                           flag=(True and not dupRun),
                                                           code_folder=code_folder,
-                                                          clear=clear_intFiles)
+                                                          clear=clear_intFiles,
+                                                          num_q=num_q)
 
     #pdb.set_trace()
     do_merge_count_x_and_altInfo(split_sam_dir,
@@ -168,6 +177,7 @@ python snp_call_para.py  -r refAddress
                          -O outDir(not used)
                          -T threshold
                          -p num_p(i.e. parallel, >1 recommended)
+                         [-q num_q (i.e. p/q batches, q_jobs_parallel per batch)]
                          [--dupRun 1/0]
                          [--code_folder code_folder]
                          [--filt3_sameAb 1/0 (default 1)] [--filt3_rocT v1,v2,... (default 0,1)]

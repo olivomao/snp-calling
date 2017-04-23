@@ -51,7 +51,8 @@ def do_para_count(split_sam_dir,
                   num_p,
                   flag=True,
                   code_folder='',
-                  clear=0):
+                  clear=0,
+                  num_q=-1):
 
     count_split_dir0 = '/count_x/'
     count_split_dir1 = '/count_y/'
@@ -60,20 +61,28 @@ def do_para_count(split_sam_dir,
         return [count_split_dir0, count_split_dir1]    
     
     if code_folder != '': code_folder += '/'
-    cmd = 'parallel python %scount_read_lambda.py '%code_folder+\
-          split_sam_dir+' '+\
-          split_sam_pre_fn + '{} '+\
-          ref_address + ' ' +\
-          cov_address + ' ' +\
-          count_split_dir0 + ' '+\
-          'count_x{}.txt '+\
-          repr(num_p)+' '+\
-          ':::'
 
-    for i in range(num_split_sam_files):
-        cmd = cmd + ' %02d'%i
+    if num_q==-1:
+        num_q = num_p
 
-    run_cmd(cmd)
+    num_batches = num_p / num_q
+    for ith_batch in range(num_batches):
+
+        cmd = 'parallel python %scount_read_lambda.py '%code_folder+\
+              split_sam_dir+' '+\
+              split_sam_pre_fn + '{} '+\
+              ref_address + ' ' +\
+              cov_address + ' ' +\
+              count_split_dir0 + ' '+\
+              'count_x{}.txt '+\
+              repr(num_p)+' '+\
+              ':::'
+
+        for i in xrange(ith_batch*num_q, (ith_batch+1)*num_q):
+            cmd = cmd + ' %02d'%i
+
+        #pdb.set_trace()
+        run_cmd(cmd)
 
     if clear == 1:        
         for i in range(num_split_sam_files):
