@@ -6,7 +6,7 @@ from sim_data_generator import snp_read_cov1
 from old_code.util import run_cmd
 from old_code.snp_analysis import SnpNodeDic
 from old_code.snp_oper import load_snps
-from old_code.count_read_lambda import check_lambda_multimapping
+from old_code.count_read_lambda import check_lambda_multimapping, check_count_fmt1_lam_altMap
 
 
 '''
@@ -14,7 +14,7 @@ python evaluator.py    --gen_snpSum3
                        -m true_m_snp
                        -p true_p_snp
                        --L1 snp_res_label_1 --F1 snp_res_file_1 [--L2 L2 --F2 F2 etc] (s.t. we can have flexible number of snp files)
-                       [--caG count_alt_gatk or --caR count_alt_rsem]
+                       (--caG count_alt_gatk --caR count_alt_rsem) or (--cG1 count_gatk_fmt1 --cR1 count_rsem_fmt1)
                        -O outDir
                        [--rm true_read_m_bed --rp true_read_p_bed]
                        [--removeIntermediateFiles]
@@ -33,8 +33,15 @@ col-3: allele (m or p or b)
 col-4: # of m reads covering it (-1 if info unavailable)
 col-5: # of p reads covering it (-1 if info unavailable)
 col-6: estimated abundance
-col-7: # of multi mapped reads (gatk), excluding self (-1 if info unavailable)
-col-8: # of multi mapped reads (rsem), excluding self (-1 if info unavailable)
+col-7 & 8:
+    if --caG and --caR used:
+        col-7: # of multi mapped reads (gatk), excluding self (-1 if info unavailable)
+        col-8: # of multi mapped reads (rsem), excluding self (-1 if info unavailable)
+    if --cG1 and --cR1 used:
+        col-7 for count file in format 1 (gatk) and col-8 for count file in format 1 (rsem), esp:
+               -1: no snp reads
+               0:  part or all of snp reads uniq mapped (part, not all of snp reads alt mapped)
+               1+ (float val): all snp reads alt mapped, # of avg alt mapping (excluding self)
 col-9: is detected by snp_res_file_1 (e.g. abSNP a=0) (1 or 0 or 0.5/pos right, but different tB)
 [col-10: is detected by snp_res_file_2 (e.g. abSNP a=1) (1 or 0 or 0.5/pos right, but different tB)]
 [col-11: is detected by snp_res_file_3 (e.g. GATK) (1 or 0 or 0.5/pos right, but different tB)]
@@ -120,39 +127,65 @@ def gen_snpSum3(args):
     #pdb.set_trace()
 
     #col-6 ~ col-8
-    if '--caG' in args:
-        lam_multimapping_count_alt_gatk = check_lambda_multimapping(args[args.index('--caG')+1])
-        for k in snpSum3.keys():
-            k2 = k#-1 #0-based
-            if k2 in lam_multimapping_count_alt_gatk:
-                snpSum3[k][5] = lam_multimapping_count_alt_gatk[k2][0]
-                snpSum3[k][6] = lam_multimapping_count_alt_gatk[k2][1]
-            else:
-                print('unexpected: k2=%d not in count_alt_gatk'%k2)
-                pdb.set_trace()
-    else:
-        lam_multimapping_count_alt_gatk = None
+    if '--caG' in args and '--caR' in args:
+        if '--caG' in args:
+            lam_multimapping_count_alt_gatk = check_lambda_multimapping(args[args.index('--caG')+1])
+            for k in snpSum3.keys():
+                k2 = k#-1 #0-based
+                if k2 in lam_multimapping_count_alt_gatk:
+                    snpSum3[k][5] = lam_multimapping_count_alt_gatk[k2][0]
+                    snpSum3[k][6] = lam_multimapping_count_alt_gatk[k2][1]
+                else:
+                    print('unexpected: k2=%d not in count_alt_gatk'%k2)
+                    pdb.set_trace()
+        else:
+            lam_multimapping_count_alt_gatk = None
 
-    if '--caR' in args:
-        lam_multimapping_count_alt_rsem = check_lambda_multimapping(args[args.index('--caR')+1])
-        for k in snpSum3.keys():
-            k2 = k#-1 #0-based
-            if k2 in lam_multimapping_count_alt_rsem:
-                snpSum3[k][5] = lam_multimapping_count_alt_rsem[k2][0]
-                snpSum3[k][7] = lam_multimapping_count_alt_rsem[k2][1]
-            else:
-                print('unexpected: k2=%d not in count_alt_rsem'%k2)
-                pdb.set_trace()
+        if '--caR' in args:
+            lam_multimapping_count_alt_rsem = check_lambda_multimapping(args[args.index('--caR')+1])
+            for k in snpSum3.keys():
+                k2 = k#-1 #0-based
+                if k2 in lam_multimapping_count_alt_rsem:
+                    snpSum3[k][5] = lam_multimapping_count_alt_rsem[k2][0]
+                    snpSum3[k][7] = lam_multimapping_count_alt_rsem[k2][1]
+                else:
+                    print('unexpected: k2=%d not in count_alt_rsem'%k2)
+                    pdb.set_trace()
+        else:
+            lam_multimapping_count_alt_rsem = None
+        #pdb.set_trace()
+    elif '--cG1' in args and '--cR1' in args:
+        c_cases = []
+        c_cases.append(['--cG1', 6]) #col-7
+        c_cases.append(['--cR1', 7]) #col-8
+
+        for c_case in c_cases:
+            c_op = c_case[0] #count file operator (indicator)
+            snpSum3_idx = c_case[1]
+            #pdb.set_trace()
+
+            lam_altMap_count = check_count_fmt1_lam_altMap(args[args.index(c_op)+1])
+            for k in snpSum3.keys():
+                k2 = k
+                if k2 in lam_altMap_count:
+                    snpSum3[k][5] = lam_altMap_count[k2][0]
+                    snpSum3[k][snpSum3_idx] = lam_altMap_count[k2][1]
+                else:
+                    print('unexpected: k2=%d not in %s'%(k2, c_op))
+                    pdb.set_trace()
+
+            #pdb.set_trace()
+
     else:
-        lam_multimapping_count_alt_rsem = None
-    #pdb.set_trace()
+        print('need (--caG --caR) or (--cG1 --cR1)'); pdb.set_trace()
 
     #output
     out_file = '%s/snpSum3.txt'%outDir
     with open(out_file, 'w') as of:
 
         #headline
-        st = '#gPos1\trB\ttB\tallele\tnum_m_rds\tnum_p_rds\tab\tmultMap_gatk\tmultMap_rsem\t'
+        #st = '#gPos1\trB\ttB\tallele\tnum_m_rds\tnum_p_rds\tab\tmultMap_gatk\tmultMap_rsem\t'
+        st = '#gPos1\trB\ttB\tallele\tnum_m_rds\tnum_p_rds\tab\taltMap_gatk\taltMap_rsem\t'
         for i in range(len(snp_res_files)):
             f_description = snp_res_files[i][0]
             st += f_description + '\t'
@@ -195,8 +228,8 @@ def load_snpSum3(file):
             m_cov = int(tokens[4]) #col-4: # of m reads covering it (-1 if info unavailable)
             p_cov = int(tokens[5]) #col-5: # of p reads covering it (-1 if info unavailable)
             ab = float(tokens[6]) #col-6: estimated abundance
-            mult_map_gatk = int(tokens[7]) #col-7: # of multi mapped reads (gatk), excluding self (-1 if info unavailable)
-            mult_map_rsem = int(tokens[8]) #col-8: # of multi mapped reads (rsem), excluding self (-1 if info unavailable)
+            mult_map_gatk = float(tokens[7]) #col-7: # of multi mapped reads (gatk), excluding self (-1 if info unavailable)
+            mult_map_rsem = float(tokens[8]) #col-8: # of multi mapped reads (rsem), excluding self (-1 if info unavailable)
             snpSum3[gPos]=[rB, tB, allele, m_cov, p_cov, ab, mult_map_gatk, mult_map_rsem]
 
             for c in tokens[9:]:
@@ -206,9 +239,9 @@ def load_snpSum3(file):
 
 #v_list: list corresponding to snpSum3 file's data line of col1 ~ col9+
 #groupValCalcOption 0~2, 0 (based on m cov/ p cov) 1 (based on ab) 2 (based on gatk/rsem multimapping)
-#return the val (indicates which value the snp line needs to have in order to be assigned to some group); -1 returned in case of any exception
+#return the val (indicates which value the snp line needs to have in order to be assigned to some group); None returned in case of any exception
 def calc_curr_group_val(v_list, groupValCalcOption):
-    val = -1
+    val = None
     if groupValCalcOption==0:
         #pdb.set_trace()
         val = v_list[4-1]+v_list[5-1] # sum of m_cov and p_cov
@@ -217,13 +250,14 @@ def calc_curr_group_val(v_list, groupValCalcOption):
         val = v_list[6-1]
     elif groupValCalcOption==2:
         #pdb.set_trace()
-        #val = v_list[7-1]#7-1: gatk 8-1: rsem
+        val = v_list[7-1]#7-1: gatk 8-1: rsem
         #val = v_list[8-1]
-        val = min(v_list[7-1], v_list[8-1])
+        #val = min(v_list[7-1], v_list[8-1])
+        #val = max(v_list[7-1], v_list[8-1])
     return val
 
 #groupValCalcOption 0~2, 0 (based on m cov/ p cov) 1 (based on ab) 2 (based on gatk/rsem multimapping)
-#group_vals: a list of float values corresponding to g1 to gN
+#group_vals: a list of float values corresponding to g0,g1 to gN
 #snpSum3: snpSum3 object {} (key - gPos 1 based val - list of col1 ~ col9+)
 #caller_descriptions: list of caller names embedded in snpSum3 file / ordered
 #
@@ -233,34 +267,31 @@ def calc_curr_group_val(v_list, groupValCalcOption):
 #resFile:
 #line-0: #snpSum3File
 #line-1: #groupValCalcOption
-#line-2: #caller   [0,g1)  [g1,g2) ... [gN-1, gN)
+#line-2: #caller   [g0,g1)  [g1,g2) ... [gN-1, gN)
 #line-3: tot       cnts    cnts        cnts
 #line-4: caller0   cnts    cnts        cnts
 #[line-5 etc]
 #
 #resFile.log
-#(caller0, g1): 
+#(caller0, 0-th grp): 
 #list of snp locations (1-based)
 #...
-#(caller0, gN):
+#(caller0, N-1-th grp):
 #list of snp locations
-#(caller1, g1):
+#(caller1, 0-th grp):
 #list of snp locations
 #...
-#(caller1, gN):
+#(caller1, N-1-th grp):
 #list of snp locations
 #...
 def count_by_group(groupValCalcOption, group_vals, snpSum3File, snpSum3, caller_descriptions, resFile):
 
-    N = len(group_vals)
+    N = len(group_vals)-1
     
     treeGroup = IntervalTree() #data is group index
     for i in range(N):
-        if i==0:
-            g_stt = 0
-        else:
-            g_stt = group_vals[i-1]
-        g_stp = group_vals[i]
+        g_stt = group_vals[i]
+        g_stp = group_vals[i+1]
         treeGroup.add(Interval(g_stt, g_stp, i))
 
     Counts = {} #key-caller/row val-list of cnts falling into per group
@@ -276,7 +307,7 @@ def count_by_group(groupValCalcOption, group_vals, snpSum3File, snpSum3, caller_
 
     for gPos, v_list in snpSum3.items():
         val = calc_curr_group_val(v_list, groupValCalcOption) ##
-        if val == -1:
+        if val is None:
             print('unexpected group val'); pdb.set_trace()
             continue
         #pdb.set_trace()
@@ -289,50 +320,49 @@ def count_by_group(groupValCalcOption, group_vals, snpSum3File, snpSum3, caller_
             for c_idx in range(len(caller_descriptions)):
                 if v_list[8+c_idx]==1:
                     c = caller_descriptions[c_idx]
-                    Counts[c][index] += 1
-                    Counts2[(c,index)].append(gPos)
+                    print('modify here for sub grouping'); pdb.set_trace()
+                    if True: #v_list[8-1]>=1:
+                        Counts[c][index] += 1
+                        Counts2[(c,index)].append(gPos)
                     #pdb.set_trace()
         else:
-            print('find no group for val %f (gPos: %d v_list: %s groupValCalcOption: %d)'%(float(val), gPos, str(v_list), groupValCalcOption))
+            print('find no group for val %s (gPos: %d v_list: %s groupValCalcOption: %d)'%(str(val), gPos, str(v_list), groupValCalcOption))
             pdb.set_trace()
 
     #print and output
     print('ready to output sensitivity res and log.')
-    pdb.set_trace()
+    #pdb.set_trace()
     resFileLog = resFile + '.log'
     with open(resFile, 'w') as rF, open(resFileLog, 'w') as rF_log:
 
         #rF and print
         st = '#snpSum3File: %s\n'%snpSum3File
         st += '#groupValCalcOption: %d\n'%groupValCalcOption
-        #st += '%10s\t'%'#caller   '
         st += '%10s\t'%'#caller   '
+        #st += '%10s\t'%'#caller   '
         for i in range(N):
-            if i==0:
-                g_stt = 0
-            else:
-                g_stt = group_vals[i-1]
-            g_stp = group_vals[i]
-            #st += '%10s\t'%('[%.2f, %.2f)'%(g_stt, g_stp))
-            st += '%s\t'%('%.2f'%(g_stt))
+            g_stt = group_vals[i]
+            g_stp = group_vals[i+1]
+            st += '%10s\t'%('[%.2f, %.2f)'%(g_stt, g_stp))
+            #st += '%s\t'%('%.2f'%(g_stt))
         st += '\n'
         print(st)
         rF.write(st) #header lines info
 
         #Tot
-        #st = '%10s\t'%('Tot')
-        #st += '\t'.join(['%10s'%str(v) for v in Counts['Tot']])
         st = '%10s\t'%('Tot')
-        st += '\t'.join(['%s'%str(v) for v in Counts['Tot']])
+        st += '\t'.join(['%10s'%str(v) for v in Counts['Tot']])
+        #st = '%10s\t'%('Tot')
+        #st += '\t'.join(['%s'%str(v) for v in Counts['Tot']])
         st += '\n'
         print(st)
         rF.write(st)
 
         for caller in caller_descriptions:
-            #st = '%10s\t'%caller
-            #st += '\t'.join(['%10s'%str(v) for v in Counts[caller]])
             st = '%10s\t'%caller
-            st += '\t'.join(['%s'%str(v) for v in Counts[caller]])
+            st += '\t'.join(['%10s'%str(v) for v in Counts[caller]])
+            #st = '%10s\t'%caller
+            #st += '\t'.join(['%s'%str(v) for v in Counts[caller]])
             st += '\n'
             print(st)
             rF.write(st)
@@ -353,7 +383,7 @@ def count_by_group(groupValCalcOption, group_vals, snpSum3File, snpSum3, caller_
 #python evaluator --sensitivity_analysis
 #                 --snpSum3 snpSum3File
 #                 --groupValCalcOption 0~2     # 0 (based on m cov/ p cov) 1 (based on ab) 2 (based on gatk/rsem multimapping)
-#                 --groupVals g1,g2,...,gN     # [0,g1) ... [gN-1, gN)
+#                 --groupVals g0,g1,g2,...,gN     # [g0,g1) ... [gN-1, gN)
 #                 -o resFile
 #output:
 #resFile & resFile.log
@@ -361,18 +391,18 @@ def count_by_group(groupValCalcOption, group_vals, snpSum3File, snpSum3, caller_
 #resFile:
 #line-0: #snpSum3File
 #line-1: #groupValCalcOption
-#line-2: #caller   [0,g1)  [g1,g2) ... [gN-1, gN)
+#line-2: #caller   [g0,g1)  [g1,g2) ... [gN-1, gN)
 #line-3: tot       cnts    cnts        cnts
 #line-4: caller0   cnts    cnts        cnts
 #[line-5 etc]
 #
 #resFile.log
-#(caller0, g1): list of snp locations (1-based)
+#(caller0, 0-th grp): list of snp locations (1-based)
 #...
-#(caller0, gN): list of snp locations
-#(caller1, g1): list of snp locations
+#(caller0, N-1-th grp): list of snp locations
+#(caller1, 0-th grp): list of snp locations
 #...
-#(caller1, gN): list of snp locations
+#(caller1, N-1-th grp): list of snp locations
 #...
 def sensitivity_analysis(args):
 
