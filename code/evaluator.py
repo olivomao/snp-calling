@@ -1,5 +1,6 @@
 import sys, pdb
 from intervaltree import Interval, IntervalTree 
+import numpy as np
 
 from sim_data_generator import snp_read_cov1
 
@@ -18,10 +19,12 @@ python evaluator.py    --gen_snpSum3
                        -O outDir
                        [--rm true_read_m_bed --rp true_read_p_bed]
                        [--removeIntermediateFiles]
+                       [--md_fp]
 #output:
 outDir/snpSum3.txt
        snps_mp.txt (intermediate file; pooled snps)
        snps_rd_cov.txt (intermediate file)
+       snpSum3_md_fp.txt (if --md_fp specified)
 
 snpSum3.txt:
 line-0: header line describe following cols
@@ -45,6 +48,12 @@ col-7 & 8:
 col-9: is detected by snp_res_file_1 (e.g. abSNP a=0) (1 or 0 or 0.5/pos right, but different tB)
 [col-10: is detected by snp_res_file_2 (e.g. abSNP a=1) (1 or 0 or 0.5/pos right, but different tB)]
 [col-11: is detected by snp_res_file_3 (e.g. GATK) (1 or 0 or 0.5/pos right, but different tB)]
+
+snpSum3_md_fp.txt
+- Note: SNPs w/o SNP reads are excluded from md calculation
+line-0: caller0     caller1     etc
+line-1: md0         md1         etc
+line-2: fp0         fp1         etc
 '''
 def gen_snpSum3(args):
 
@@ -179,6 +188,47 @@ def gen_snpSum3(args):
     else:
         print('need (--caG --caR) or (--cG1 --cR1)'); pdb.set_trace()
 
+    if '--md_fp' in args:
+        #pdb.set_trace()
+        md = [0]*len(snp_res_files)
+        fp = [0]*len(snp_res_files)
+        #check md
+        for gPos, v_list in snpSum3.items():
+            if float(v_list[7-1])==-1.0:
+                #pdb.set_trace()
+                continue
+            for c_id in range(len(snp_res_files)):
+                if v_list[9-1+c_id]!=1:
+                    #pdb.set_trace()
+                    md[c_id]+=1
+        #check_fp
+        for i in range(len(snp_res_files)):
+            f_description = snp_res_files[i][0]
+            f_path = snp_res_files[i][1]
+
+            detected_snps = load_snps(f_path)
+        
+            for gPos, rB_tB in detected_snps.items():
+                if gPos not in snpSum3:
+                    #pdb.set_trace()
+                    fp[i]+=1
+                elif rB_tB[1]!=snpSum3[gPos][1]:
+                    pdb.set_trace()
+                    fp[i]+=1
+        #pdb.set_trace()
+        out_file_md_fp = '%s/snpSum3_md_fp.txt'%(outDir)
+        with open(out_file_md_fp, 'w') as of:
+            st = ''
+            for i in range(len(snp_res_files)):
+                st += snp_res_files[i][0]+'\t'
+            st += '\n'
+            of.write(st)
+
+            of.write('\t'.join([str(md_val) for md_val in md])+'\n')
+            of.write('\t'.join([str(fp_val) for fp_val in fp])+'\n')
+
+            print('%s written'%(out_file_md_fp))
+
     #output
     out_file = '%s/snpSum3.txt'%outDir
     with open(out_file, 'w') as of:
@@ -238,9 +288,13 @@ def load_snpSum3(file):
     return [caller_descriptions, snpSum3]
 
 #v_list: list corresponding to snpSum3 file's data line of col1 ~ col9+
-#groupValCalcOption 0~2, 0 (based on m cov/ p cov) 1 (based on ab) 2 (based on gatk/rsem multimapping)
+#groupValCalcOption 0~3, 0 (based on m cov/ p cov) 1 (based on ab) 2 (based on gatk/rsem multimapping) 3 (based on ab perc, need ab_perc)
+#
+#ab_perc is an interval tree with [ab_stt, ab_stp):perc
+#we can use it to decide which target perc a SNP falls into
+#
 #return the val (indicates which value the snp line needs to have in order to be assigned to some group); None returned in case of any exception
-def calc_curr_group_val(v_list, groupValCalcOption):
+def calc_curr_group_val(v_list, groupValCalcOption, ab_perc=None):
     val = None
     if groupValCalcOption==0:
         #pdb.set_trace()
@@ -254,6 +308,23 @@ def calc_curr_group_val(v_list, groupValCalcOption):
         #val = v_list[8-1]
         #val = min(v_list[7-1], v_list[8-1])
         #val = max(v_list[7-1], v_list[8-1])
+    elif groupValCalcOption==3:
+        if ab_perc is None:
+            print('unexpected ab_perc')
+            pdb.set_trace()
+        else:
+            #pdb.set_trace()
+            ab = float(v_list[6-1])
+            #if v_list[3-1]=='m' or v_list[3-1]=='b': ab = float(v_list[4-1])
+            #if v_list[3-1]=='p': ab = float(v_list[5-1])
+
+            perc_query = ab_perc[ab]
+            if len(perc_query)!=0:
+                val =  sorted(perc_query)[0].data #perc
+            else:
+                print('cant find per from perc_query, ab=%f'%ab)
+                pdb.set_trace()
+
     return val
 
 #groupValCalcOption 0~2, 0 (based on m cov/ p cov) 1 (based on ab) 2 (based on gatk/rsem multimapping)
@@ -284,7 +355,7 @@ def calc_curr_group_val(v_list, groupValCalcOption):
 #(caller1, N-1-th grp):
 #list of snp locations
 #...
-def count_by_group(groupValCalcOption, group_vals, snpSum3File, snpSum3, caller_descriptions, resFile):
+def count_by_group(groupValCalcOption, group_vals, snpSum3File, snpSum3, caller_descriptions, resFile, ab_perc=None, perc_ab=None):
 
     N = len(group_vals)-1
     
@@ -306,7 +377,7 @@ def count_by_group(groupValCalcOption, group_vals, snpSum3File, snpSum3, caller_
             Counts2[key]=[]
 
     for gPos, v_list in snpSum3.items():
-        val = calc_curr_group_val(v_list, groupValCalcOption) ##
+        val = calc_curr_group_val(v_list, groupValCalcOption, ab_perc=ab_perc) ##
         if val is None:
             print('unexpected group val'); pdb.set_trace()
             continue
@@ -320,7 +391,7 @@ def count_by_group(groupValCalcOption, group_vals, snpSum3File, snpSum3, caller_
             for c_idx in range(len(caller_descriptions)):
                 if v_list[8+c_idx]==1:
                     c = caller_descriptions[c_idx]
-                    print('modify here for sub grouping'); pdb.set_trace()
+                    #print('modify here for sub grouping'); #pdb.set_trace()
                     if True: #v_list[8-1]>=1:
                         Counts[c][index] += 1
                         Counts2[(c,index)].append(gPos)
@@ -343,6 +414,13 @@ def count_by_group(groupValCalcOption, group_vals, snpSum3File, snpSum3, caller_
         for i in range(N):
             g_stt = group_vals[i]
             g_stp = group_vals[i+1]
+            if groupValCalcOption==3:
+                #change perc to ab
+                g_stt = perc_ab[g_stt]
+                if g_stp == 100:
+                    g_stp = np.inf 
+                else:
+                    g_stp = perc_ab[g_stp]
             st += '%10s\t'%('[%.2f, %.2f)'%(g_stt, g_stp))
             #st += '%s\t'%('%.2f'%(g_stt))
         st += '\n'
@@ -378,11 +456,42 @@ def count_by_group(groupValCalcOption, group_vals, snpSum3File, snpSum3, caller_
 
     return
 
+#return an interval tree and perc_ab dic (key-perc, val-ab)
+#[ab0, ab1): percentile 0
+#...
+#[ab99,np.inf): percentile 99
+def load_ab_perc(ab_perc_file):
+    perc_ab = []
+    #pdb.set_trace()
+    with open(ab_perc_file, 'r') as f:
+        for line in f:
+            perc = int(line.split()[0])
+            ab = float(line.split()[1])
+            perc_ab.append([perc, ab])
+
+    #pdb.set_trace()
+    res = IntervalTree() #data is group index
+    for i in range(len(perc_ab)):
+        if i<len(perc_ab)-1:
+            ab_stt = perc_ab[i][1]
+            ab_stp = perc_ab[i+1][1]
+        else:
+            ab_stt = perc_ab[i][1]
+            ab_stp = np.inf
+        res.add(Interval(ab_stt, ab_stp, perc_ab[i][0]))
+    #pdb.set_trace()
+    res2 = {}
+    for perc, ab in perc_ab:
+        res2[perc]=ab
+    return res, res2
+
+
 #load snpSum3 file and analyze sensitivity
 #usage:
 #python evaluator --sensitivity_analysis
 #                 --snpSum3 snpSum3File
-#                 --groupValCalcOption 0~2     # 0 (based on m cov/ p cov) 1 (based on ab) 2 (based on gatk/rsem multimapping)
+#                 --groupValCalcOption 0~3     # 0 (based on m cov/ p cov) 1 (based on ab) 2 (based on gatk/rsem multimapping) 3 (based on ab percentile)
+#                 --ab_percentile ab_percentile_file
 #                 --groupVals g0,g1,g2,...,gN     # [g0,g1) ... [gN-1, gN)
 #                 -o resFile
 #output:
@@ -416,8 +525,56 @@ def sensitivity_analysis(args):
     caller_descriptions, snpSum3 = load_snpSum3(snpSum3File)
     #pdb.set_trace()
 
-    count_by_group(groupValCalcOption, groupVals, snpSum3File, snpSum3, caller_descriptions, resFile)
+    if '--ab_percentile' in args:
+        ab_perc, perc_ab = load_ab_perc(args[args.index('--ab_percentile')+1])
+    else:
+        ab_perc = None
+        perc_ab = None
     #pdb.set_trace()
+
+    count_by_group(groupValCalcOption, groupVals, snpSum3File, snpSum3, caller_descriptions, resFile, ab_perc=ab_perc, perc_ab=perc_ab)
+    #pdb.set_trace()
+
+    return
+
+'''
+python evaluator.py --calcAbPercentile -1 snpSum3_1 [-2 snpSum3_2 etc] -o ab_percentile_file
+
+ab_percentile_file format:
+col-0: percentile e.g. 0~99
+col-1: related ab val
+'''
+
+def calcAbPercentile(args):
+    #pdb.set_trace()
+
+    idx = 0
+    files = []
+    while '-%d'%idx in args:
+        files.append(args[args.index('-%d'%idx)+1])
+        idx += 1
+    #pdb.set_trace()
+
+    ab_values = []
+    for file in files:
+        with open(file, 'r') as f:
+            for line in f:
+                if line[0]=='#' or line.strip()=='': continue
+                ab_values.append(float(line.split()[6]))
+                
+                #if line.split()[3]=='m': ab_values.append(float(line.split()[4]))
+                #if line.split()[3]=='p': ab_values.append(float(line.split()[5]))
+
+    #pdb.set_trace()
+
+    ab_percentile_file = args[args.index('-o')+1]
+    with open(ab_percentile_file, 'w') as f:
+        for qt in xrange(0,100,1):
+            thre = np.percentile(ab_values, qt)
+            f.write('%d\t%.2f\n'%(qt, thre))
+    #pdb.set_trace()
+
+    print('%s written'%ab_percentile_file)
 
     return
 
@@ -466,3 +623,5 @@ if __name__ == "__main__":
         gen_snpSum3(args)
     elif '--sensitivity_analysis' in args:
         sensitivity_analysis(args)
+    elif '--calcAbPercentile' in args:
+        calcAbPercentile(args)
