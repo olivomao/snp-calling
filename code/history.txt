@@ -1,0 +1,152 @@
+TBD:
+- snp_call non para or parallel --> serial
+- ExpressionLevel2Coverage: improper using L, N and exp_sum may be the reason why prev ideal coverage is worse than rsem coverage
+
+2017/5/8:
+
+commit summary: add codes to support roc and sens analysis (opt 4, group snp reads cov)
+
+evaluator.py
+- calcAbPercentile: add --ab and --step in order to gen per file for snp reads cov from snpSum3 files
+- add groupValCalcOption 4 (based on snp reads cov PERCENTILE, need ab_perc in perc\tsnp_reads_cov contents)
+  in count_by_group and calc_curr_group_val
+- add pre_check_v_list and post_check_v_list for convenient refined sensitivity analysis
+
+evaluate_performance.py
+- sens support:
+  add option 4 (originally included in option 3)
+- roc support:
+  add some codes (commented) to plot coordinates and label lines in plot_roc
+
+2017/4/28:
+
+commit summary: add codes to support roc (md_fp) and sens analysis (e.g. flexible plot from generated results)
+
+evaluator.py
+--gen_snpSum3: --md_fp option added
+--add groupValCalcOption 3 (group by SNP cov percentile) for sens analysis
+
+evaluate_performance.py
+- sens support:
+  -- add option 3 for sens analysis(group by ab percentile or snp cov percentile)
+  -- modify plot_sens for its flexibility
+- roc support:
+  -- dump snpSum3_md_fp
+  -- add calc_roc_avg_stdev and plot_roc for roc analysis
+
+2017/4/23:
+
+commit summary: add codes to assst: count format1, strict sens analysis alt map grouping (i.e. snp is multi mapped if all its snp reads are multiply mapped), summary and plot sensitivity 
+
+old_code/count_read_lambda.py
+- add --format for gen_count_selectively
+- add check_count_fmt1_lam_altMap based on new fmt1 count file
+
+evaluator.py
+- add --cG1 and --cR1 option so that we can use count file in format 1 (e.g. bj,qj,lambda_bj,lambda_sum --> bj,# altMap) to know each snp, how each read is multiple aligned
+- modify calc_curr_group_val: invalid val is None instead of -1 (if group by altMap, it's possible val=-1, indicating no SNP reads over the SNP)
+  we fix group based on deduppedSam if opt2 is used
+- modify sensitivity format and needs group vals g0,g1,...,gN instead of old g1,g2,...,gN (because the first group may not start from 0)
+
+evaluate_performance.py
+- modify --batch, add --calc_sens_avg_stdev and --plot in order to analyze sensitivity in details
+
+2017/4/22
+
+commit summary: add codes to assist: multi run of abSNP and GATK on synthetic data, add codes for md/fp analysis and detailed sensitivity analysis.
+
+sim_data_generator.py:
+add gen_sim_exp_snp_tar, to generate simulated snps (exp --> snps and tar), as in batch_run_case1plus6
+
+snp_call_para.py and batch_run_parallel_modi.py:
+add num_q (for num_p cores, we do num_p/num_q batches in serial, and num_q jobs in parallel per batch) in order to better suite memory consumption
+
+evaluator.py:
+add functions for snp sens analysis (e.g. gen_snpSum3, sensitivity_analysis)
+
+old_code/count_read_lambda.py
+- add gen_count_selectively (correspondingly, update_counts_no_alt_mapping, update_counts_with_dir_alt_mapping and dump) to generate count and count alt only for selected snps (count: 0-based, we find snp also 0-based!)
+- add check_lambda_multimapping, check_lambda_multimapping_per_line in order to parse a count_alt line to decide if a snp has uniq or non-uniq mapped reads
+
+old_code/snp_analysis.py
+add extract_snpSum in order to extract info to plot error-bar bar charts for abSNP vs GATK. This performance checking is before snpSum3.
+
+add:
+test_SimSNPs_MultiRun_abSNP_vs_GATK.py and (test_abSNP_batch.py, test_gatk_batch.py)
+evaluate_performance.py
+to run abSNP and GATK multiple times under different cases in order to compare their performance (e.g. md vs fp, and detailed sensitivity analysis)
+
+2017/4/15
+
+commit summary: ML-->MAP estimation (P_snp=0.001)
+
+old_code/final_caller19thjuly_m.py
+- read accurate rate: 0.999 --> 0.99
+- add px(x,r) to incorporate prior knowledge of SNP probability to abSNP (i.e. we use MAP instead of ML estimation)
+
+2017/4/14
+commit summary: modifications to prepare filtered real snps for uniq map analysis
+
+sim_data_generator.py
+- add sel_snps_covered: filter to get only snps that are covered by reads
+- modify read_generation_at_sel_snps: rename to readBed_generation_at_sel_snps; read bed line '\n' removed
+
+RNASeqReadSimulator --> getseqfrombed.py
+- add: if len(lines.strip())==0: continue
+
+file_structure.txt:
+- add log file of readBed generation at sel snps
+
+2017/4/13
+commit summary:
+add functions (e.g. read_generation_at_sel_snps) to generate reads to cover selected snps
+
+sim_data_generator.py
+- add read_generation_at_sel_snps
+
+batch_run_case1plus6.py
+- add enforce_unique_readID_bed
+
+2017/4/12
+commit summary:
+add analysis code for real snps, minor modification of ReadProgress (e.g. show progress, boundary check), Synthesis (calc_exp_sum etc), snp_oper (boundary check)
+
+- add dependencies.txt, file_structure and some module test scripts
+- sim_data_generator.py:
+  add: mark_homozygous, sel_snps, gen_coverage, snp_cov, snp_read_cov1, reasign_exp, gen_genome_of_snps ==> mainly used to handle/analyze real snps
+- ReadProcess.py:
+  modify BED2Exon1 to show progress and boundary condition check (e.g. line)
+- Synthesis.py:
+  add calc_exp_sum, modify coverage output folder, check BED file boundary condition etc
+- snp_oper.py:
+  add boundary check for load_snps
+
+2017/4/10
+- abSNP transferred to https://github.com/shunfumao/abSNP
+- old local folder move to snp-calling-code170410_BeforeMove2abSNP_bkp
+
+2017/4/7
+- add --clear_intFiles to snp_call_para.py in order to remove intermediately generated split sam, count, count alt files
+
+- add snp_call_gatk.py and test_gatk_batch.py
+
+2017/4/6
+
+- snp_call_para.py done
+
+2017/4/5
+
+based on re-organized structure in paper, create:
+- sim_data_generator.py (sim reads etc)
+- quantification.py (ab est & by-product of genome based alignment)
+- snp_call_para.py (count_generation + snp_call + snp_filt3)
+- tool_address.py
+
+2017/4/5
+
+clear up codes, 
+
+remove old ones to _to_delete, and test scripts to test_scripts
+
+move all codes up to now to old_code
+

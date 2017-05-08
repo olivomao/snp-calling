@@ -3,13 +3,13 @@ import numpy as np
 
 from old_code.util import run_cmd, run_cmds
 
-def test_sensitivity_analysis_batch(args):
+def evaluate_performance_batch(args):
 
     #configuration (e.g. args)
     #readsLabel = 'reads_N100K_L100_Err0.00'
     #readsLabel = 'reads_N100K_L100_Err0.01'
-    #readsLabel = 'reads_N1m_L100_Err0.01'
-    readsLabel = 'reads_N10m_L100_Err0.01'
+    readsLabel = 'reads_N1m_L100_Err0.01'
+    #readsLabel = 'reads_N10m_L100_Err0.01'
 
     run_stt = 5
     run_stp = 9 #inclusive
@@ -32,16 +32,23 @@ def test_sensitivity_analysis_batch(args):
     #    0:  part or all of snp reads uniq mapped (part, not all of snp reads alt mapped)
     #    1+ (float val): all snp reads alt mapped, # of avg alt mapping (excluding self)
     #'''
-    groupValCalcOption = 2
-    groupValsStr = '-1,0,1,2,4,6,8,10,20'
+    #groupValCalcOption = 2
+    #groupValsStr = '-1,0,1,2,4,6,8,10,20'
     #'''
     
     #opt-3 based on snpSum3 ab's percentile [0,1)...[98,99),[99,100) (need to determine the percentile from multi runs first)
-    '''
-    groupValCalcOption = 3
-    tmp_ab_percentile = 'tmp/tmp_ab_percentile.txt'
+    #'''
+    #groupValCalcOption = 3
+    #tmp_ab_percentile = 'tmp/tmp_ab_percentile.txt'; ab_Str = '--ab 0 '; step_Str = '--step 1 '
+    #groupValsStr = '0,25,50,75,100' #'0,20,40,60,80,100' #'0,10,20,30,40,50,60,70,80,90,100'
+    #'''
+
+    #opt-4 based on snpSum3 snp reads cov percentile e.g. [0,5)...[95,100) (need to determine the percentile from multi runs first)
+    #'''
+    groupValCalcOption = 4
+    tmp_ab_percentile = 'tmp/tmp_ab_percentile.txt'; ab_Str = '--ab 1 '; step_Str = '--step 5'
     groupValsStr = '0,25,50,75,100' #'0,20,40,60,80,100' #'0,10,20,30,40,50,60,70,80,90,100'
-    '''
+    #'''
 
     old_code_dir = 'old_code/'
     srcDir = '/data1/shunfu1/SNPCalling/'
@@ -52,19 +59,22 @@ def test_sensitivity_analysis_batch(args):
     chrom = 'Chr15'
     refGenome = '/data1/shunfu1/SNPCalling/data_large_0_idealCov/%s.fa'%chrom
 
-    num_p = 20 #num parallel
+    num_p = 1 #num parallel
 
     cnt_format = 1 #0-e.g. C,I,lambda_bj,lambda_sum  1-e.g. bj,num_alt_mapping
 
-    snpSum3_folder_name = 'snpSum3_SnpLoc0Based_CntFormat1'#'snpSum_3_debug_gen_count_sel' #'snpSum3_2' para applied
+    snpSum3_folder_name = 'snpSum3_SnpLoc0Based_CntFormat1' #'snpSum3_SnpLoc0Based_CntFormat1'#'snpSum_3_debug_gen_count_sel' #'snpSum3_2' para applied
     #sensitivity_res_name = 'sensitivity_opt%d.txt'%groupValCalcOption
-    sensitivity_res_name = '_' #'sensitivity_opt3_SnpReadCov.txt' #'sensitivity_opt2_rsemAltMap_le0.txt' #'sensitivity_opt2.txt' #'sensitivity_opt2_rsemAltMap_ge1.txt'
+    #sensitivity_res_name = 'sensitivity_opt3_SnpReadCov_MultiMapSNP_rsem_uniqmap.txt' #'sensitivity_opt2_rsemAltMap_le0.txt' #'sensitivity_opt2.txt' #'sensitivity_opt2_rsemAltMap_ge1.txt'
+    #sensitivity_res_name = 'sensitivity_opt3_SnpReadCov_UniqMapSNP.txt'
+    #sensitivity_res_name = 'sensitivity_opt3_SnpReadCov_MultSNP_rsem_ge1.txt'
+    sensitivity_res_name = 'sensitivity_opt4.txt'
 
-    #### config - steps to run
-    do_bam2sam = 1
-    do_gen_count_selectively = 1
-    do_gen_snpSum3 = 1
-    do_detailed_sens_analysis = 0
+    #### config - teps to run
+    do_bam2sam = 0
+    do_gen_count_selectively = 0
+    do_gen_snpSum3 = 0
+    do_detailed_sens_analysis = 1
 
 
     #### 0. auto configuration
@@ -205,21 +215,23 @@ def test_sensitivity_analysis_batch(args):
 
     
     #### 3: in case percentile group, check ab percentile from multi runs
-    if groupValCalcOption==3:
+    if groupValCalcOption==3 or groupValCalcOption==4:
         cmd = 'python evaluator.py --calcAbPercentile '
         snpSum3_idx = 0
         for rn in xrange(run_stt, run_stp+1):
             cmd += '-%d %s '%(snpSum3_idx, run_files[rn]['snpSum3File'])
             snpSum3_idx+=1
-        cmd += '-o %s'%tmp_ab_percentile
+        cmd += '-o %s '%tmp_ab_percentile
+        cmd += '%s %s'%(ab_Str, step_Str)
         #pdb.set_trace()
         run_cmd(cmd)
+    #pdb.set_trace()
 
     #### 4: detailed sensitivity
     cmds = []
     for rn in xrange(run_stt, run_stp+1):
         #detailed sensitivity analysis
-        if groupValCalcOption==3:
+        if groupValCalcOption==3 or groupValCalcOption==4:
             ab_per_str = '--ab_percentile %s '%tmp_ab_percentile
         else:
             ab_per_str = ''
@@ -250,7 +262,7 @@ line-3: tot       cnts    cnts        cnts
 line-4: caller0   cnts    cnts        cnts
 [line-5 etc]
 
-python test_sensitivity_analysis2.py --calc_sens_avg_stdev -O outDir --fn outFn (e.g. *.txt) [--normalize ref_c_id]
+python evaluate_performance.py --calc_sens_avg_stdev -O outDir --fn outFn (e.g. *.txt) [--normalize ref_c_id]
 
 ref_c_id: reference caller id for normalization, default 0 ('Tot')
 '''
@@ -271,7 +283,10 @@ def calc_sens_avg_stdev(args):
         #run_files[rf] = '/data1/shunfu1/SNPCalling//SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1/sensitivity_opt1.txt'%(rf)
 
         #run_files[rf] = '/data1/shunfu1/SNPCalling//SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1/sensitivity_opt3.txt'%(rf)
-        run_files[rf] = '/data1/shunfu1/SNPCalling//SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1/sensitivity_opt3_SnpReadCov.txt'%(rf)
+        #run_files[rf] = '/data1/shunfu1/SNPCalling//SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1/sensitivity_opt3_SnpReadCov.txt'%(rf) sensitivity_opt3_SnpReadCov_MultiMapSNP
+        #run_files[rf] = '/data1/shunfu1/SNPCalling//SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1/sensitivity_opt3_SnpReadCov_MultSNP_rsem_ge1.txt'%(rf) 
+        run_files[rf] = '/data1/shunfu1/SNPCalling//SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1/sensitivity_opt4.txt'%(rf) 
+        #run_cmd('cp %s tmp/sensitivity_opt3_SnpReadCov_MultMapSNP_%d.txt'%(run_files[rf], rf))
 
     #parse structure
     with open(run_files[run_stt], 'r') as f:
@@ -307,7 +322,7 @@ def calc_sens_avg_stdev(args):
                 for g_id in range(len(vals)):
                     data[(c_id, g_id)].append(vals[g_id])
                 c_id += 1
-    pdb.set_trace()
+    #pdb.set_trace()
 
     if '--normalize' in args:
         #pdb.set_trace()
@@ -368,7 +383,7 @@ line-1(e.g. md): v0     v1      etc
 line-2(e.g. fp): w0     w1      etc
 etc lines (e.g. tot)
 
-python test_sensitivity_analysis2.py --calc_roc_avg_stdev -O outDir --fn outFn (e.g. *.txt)
+python evaluate_performance.py --calc_roc_avg_stdev -O outDir --fn outFn (e.g. *.txt)
 
 '''
 def calc_roc_avg_stdev(args):
@@ -561,7 +576,7 @@ def barplot_with_errorbar(groups, #e.g. ['100K', '1M']
 
 '''
 at local pc
-python test_sensitivity_analysis2.py --plot_sens                                     
+python evaluate_performance.py --plot_sens                                     
 
                                      -n num_header_lines
 
@@ -744,7 +759,7 @@ def plot_sens(args):
 
 '''
 at local pc
-python test_sensitivity_analysis2.py --plot_roc
+python evaluate_performance.py --plot_roc
                                      -x x_line_id(2nd line has id 0) --x_lab x_lab -y y_line_id --y_lab y_lab
                                      --title tit
 
@@ -831,6 +846,28 @@ def plot_roc(args):
                     label=c_lab,
                     color=c_color)
 
+        '''
+        for i in range(len(x_vals)):
+            x = int(x_vals[i])
+            y = int(y_vals[i])
+            ax.annotate('(%d, %d)'%(x,y), xy=(x+1,y+1), textcoords='data')
+        
+        ss = 65
+        tt = 189
+        cl = 'red'
+        ax.annotate('m = %d - f'%tt, xy=(ss,tt-ss), xytext=(ss+15,tt-ss+10), arrowprops=dict(facecolor=cl, shrink=0.05)) #, textcoords='data')
+
+        ss = 55
+        tt = 127
+        cl = 'blue'
+        ax.annotate('m = %d - f'%tt, xy=(ss,tt-ss), xytext=(ss+15,tt-ss+10), arrowprops=dict(facecolor=cl, shrink=0.05)) #, textcoords='data')
+
+        ss = 75
+        tt = 102
+        cl = 'blue'
+        ax.annotate('m = %d - f'%tt, xy=(ss,tt-ss), xytext=(ss+20,tt-ss+15), arrowprops=dict(facecolor=cl, shrink=0.05)) #, textcoords='data')
+        '''
+
         if dummy_line==1:
             for i in range(len(x_vals)): #each point has a dummy line
                 tot = x_vals[i]+y_vals[i]
@@ -860,9 +897,9 @@ def plot_roc(args):
 usage:
 
 #selective count alt generation --> gen snpSum3 --> detailed sensitivity for different runs of certain case (e.g. fixed read num, len and err rate)
-#generate: sel count, count alt, snpSum3 and sensitivity files
+#generate: sel count, count alt, snpSum3 and roc & sensitivity files
 
-python test_sensitivity_analysis2.py --batch
+python evaluate_performance.py --batch
 
 #calc avg/stdev of a set of sens files. and output outDir/outFn.txt & outFn_stdev.txt
 #
@@ -874,17 +911,17 @@ python test_sensitivity_analysis2.py --batch
 #line-4: caller0   cnts    cnts        cnts
 #[line-5 etc]
 
-python test_sensitivity_analysis2.py --calc_sens_avg_stdev -O outDir --fn outFn (e.g. *.txt) [--normalize ref_c_id]
+python evaluate_performance.py --calc_sens_avg_stdev -O outDir --fn outFn (e.g. *.txt) [--normalize ref_c_id]
 
 #at local pc
-python test_sensitivity_analysis2.py --plot_sens -i sensFile [-i2 sensFile_stdev]
+python evaluate_performance.py --plot_sens -i sensFile [-i2 sensFile_stdev]
 '''
 if __name__ == "__main__":
 
     args = sys.argv
 
     if '--batch' in args:
-        test_sensitivity_analysis_batch(args)
+        evaluate_performance_batch(args)
     elif '--calc_sens_avg_stdev' in args:
         calc_sens_avg_stdev(args)
     elif '--calc_roc_avg_stdev' in args:

@@ -92,6 +92,8 @@ r - ref base
 '''
 def px(x, r, Ps=0.001):
 
+    #Ps = 0.0001
+
     if x==r:
         return math.log(1-Ps)
     else:

@@ -250,6 +250,9 @@ def update_counts_with_dir_alt_mapping(ref, D, positions, counts, read_group, di
                 #    pdb.set_trace()
                 #if gp==82986260 and flag_alt==1:
                 #    pdb.set_trace()
+                #if gp==72958147 and aligned_base=='A': # or gp==28772436:
+                #    pdb.set_trace()
+
                 if cnt_format==0:
                     count = counts.setdefault(gp, [])
                     count.append(r)

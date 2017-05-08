@@ -288,7 +288,10 @@ def load_snpSum3(file):
     return [caller_descriptions, snpSum3]
 
 #v_list: list corresponding to snpSum3 file's data line of col1 ~ col9+
-#groupValCalcOption 0~3, 0 (based on m cov/ p cov) 1 (based on ab) 2 (based on gatk/rsem multimapping) 3 (based on ab perc, need ab_perc)
+#groupValCalcOption 0~4, 0 (based on m cov/ p cov) 1 (based on ab) 
+#                        2 (based on gatk/rsem multimapping)
+#                        3 (based on ab PERCENTILE, need ab_perc)
+#                        4 (based on snp reads cov PERCENTILE, need ab_perc in perc\tsnp_reads_cov contents)
 #
 #ab_perc is an interval tree with [ab_stt, ab_stp):perc
 #we can use it to decide which target perc a SNP falls into
@@ -308,32 +311,68 @@ def calc_curr_group_val(v_list, groupValCalcOption, ab_perc=None):
         #val = v_list[8-1]
         #val = min(v_list[7-1], v_list[8-1])
         #val = max(v_list[7-1], v_list[8-1])
-    elif groupValCalcOption==3:
+    elif groupValCalcOption==3:#ab PERCENTILE
         if ab_perc is None:
             print('unexpected ab_perc')
             pdb.set_trace()
         else:
             #pdb.set_trace()
             ab = float(v_list[6-1])
-            #if v_list[3-1]=='m' or v_list[3-1]=='b': ab = float(v_list[4-1])
-            #if v_list[3-1]=='p': ab = float(v_list[5-1])
-
+            
             perc_query = ab_perc[ab]
             if len(perc_query)!=0:
                 val =  sorted(perc_query)[0].data #perc
             else:
                 print('cant find per from perc_query, ab=%f'%ab)
                 pdb.set_trace()
+    elif groupValCalcOption==4:#snp reads cov PERCENTILE
+        if ab_perc is None:
+            print('unexpected ab_perc')
+            pdb.set_trace()
+        else:
+            if v_list[3-1]=='m' or v_list[3-1]=='b': ab = float(v_list[4-1])
+            if v_list[3-1]=='p': ab = float(v_list[5-1])
+
+            perc_query = ab_perc[ab]
+            if len(perc_query)!=0:
+                val =  sorted(perc_query)[0].data #perc
+            else:
+                print('cant find per from perc_query, snp reads cov=%f'%ab)
+                pdb.set_trace()
 
     return val
 
-#groupValCalcOption 0~2, 0 (based on m cov/ p cov) 1 (based on ab) 2 (based on gatk/rsem multimapping)
+#by default, is True
+#there is no restriction once we can assign a SNP to a group
+#
+#but sometimes we only want to focus on e.g. assigning multiply mapped SNPs to different groups,
+#we then add restrictions here e.g. return v_list[7-1]>=1
+#then only multiply mapped snps will be included in resFile & resFile.log produced by count_by_group
+def pre_check_v_list(v_list):
+    return True
+
+#by default, is True
+#there is no restriction once we can assign a SNP to a group, and the SNP is detected by some caller
+#
+#but sometimes we only want to focus on the SNP (in a group, detected by some caller) has some property (e.g. uniquely mapped by RSEM)
+#we then add restrictions here e.g. return v_list[8-1]<1
+def post_check_v_list(v_list):
+    return True
+
+#groupValCalcOption 0~4, 0 (based on m cov/ p cov) 1 (based on ab) 
+#                        2 (based on gatk/rsem multimapping)
+#                        3 (based on ab percentile) 
+#                        4 (based on snp reads cov percentile)
 #group_vals: a list of float values corresponding to g0,g1 to gN
 #snpSum3: snpSum3 object {} (key - gPos 1 based val - list of col1 ~ col9+)
 #caller_descriptions: list of caller names embedded in snpSum3 file / ordered
 #
 #output:
 #resFile & resFile.log
+#
+#the resFile is used for sensitivity analysis (plot), for detailed analysis (e.g. need to analyze certain types of snps)
+#we could consider modify:
+#pre_check_v_list and post_check_v_list
 #
 #resFile:
 #line-0: #snpSum3File
@@ -377,6 +416,8 @@ def count_by_group(groupValCalcOption, group_vals, snpSum3File, snpSum3, caller_
             Counts2[key]=[]
 
     for gPos, v_list in snpSum3.items():
+        if pre_check_v_list(v_list)==False: continue
+
         val = calc_curr_group_val(v_list, groupValCalcOption, ab_perc=ab_perc) ##
         if val is None:
             print('unexpected group val'); pdb.set_trace()
@@ -391,8 +432,8 @@ def count_by_group(groupValCalcOption, group_vals, snpSum3File, snpSum3, caller_
             for c_idx in range(len(caller_descriptions)):
                 if v_list[8+c_idx]==1:
                     c = caller_descriptions[c_idx]
-                    #print('modify here for sub grouping'); #pdb.set_trace()
-                    if True: #v_list[8-1]>=1:
+
+                    if post_check_v_list(v_list)==True:
                         Counts[c][index] += 1
                         Counts2[(c,index)].append(gPos)
                     #pdb.set_trace()
@@ -414,8 +455,8 @@ def count_by_group(groupValCalcOption, group_vals, snpSum3File, snpSum3, caller_
         for i in range(N):
             g_stt = group_vals[i]
             g_stp = group_vals[i+1]
-            if groupValCalcOption==3:
-                #change perc to ab
+            if groupValCalcOption==3 or groupValCalcOption==4:
+                #change perc to ab or snp reads cov
                 g_stt = perc_ab[g_stt]
                 if g_stp == 100:
                     g_stp = np.inf 
@@ -490,8 +531,10 @@ def load_ab_perc(ab_perc_file):
 #usage:
 #python evaluator --sensitivity_analysis
 #                 --snpSum3 snpSum3File
-#                 --groupValCalcOption 0~3     # 0 (based on m cov/ p cov) 1 (based on ab) 2 (based on gatk/rsem multimapping) 3 (based on ab percentile)
-#                 --ab_percentile ab_percentile_file
+#                 --groupValCalcOption 0~3     
+#                   # 0 (based on m cov/ p cov) 1 (based on ab) 2 (based on gatk/rsem multimapping)
+#                   # 3 (based on ab percentile) 4 (based on snp reads cov)
+#                 --ab_percentile ab_percentile_file [NOT USED HERE: --ab 0(abundance)/1(snp reads cov) --step 1/etc ]
 #                 --groupVals g0,g1,g2,...,gN     # [g0,g1) ... [gN-1, gN)
 #                 -o resFile
 #output:
@@ -539,10 +582,19 @@ def sensitivity_analysis(args):
 
 '''
 python evaluator.py --calcAbPercentile -1 snpSum3_1 [-2 snpSum3_2 etc] -o ab_percentile_file
+                                       [--step s] [--ab 0/1]
 
-ab_percentile_file format:
+produce ab_percentile_file from a list of snpSum3 files
+
+the output ab_percentile_file format is::
 col-0: percentile e.g. 0~99
 col-1: related ab val
+
+--step s: default 1. the percentile e.g. 0~99 is incremented with a step s.
+          it's possible different percentiles have same val, which may cause prob for downstream processing (e.g. interval tree may have invalid interval),
+          as a quick remedy, we can increase s from 1 to e.g. 5
+--ab 0/1: 0: default. col-1 of ab_percentile_file refers to the value of abundance in snpSum file
+          1:          col-1 of ab_percentile_file refers to the value of snp reads cov in snpSum file
 '''
 
 def calcAbPercentile(args):
@@ -555,21 +607,35 @@ def calcAbPercentile(args):
         idx += 1
     #pdb.set_trace()
 
+    if '--ab' in args:
+        ab_choice = int(args[args.index('--ab')+1])
+    else:
+        ab_choice = 0
+
     ab_values = []
     for file in files:
         with open(file, 'r') as f:
             for line in f:
                 if line[0]=='#' or line.strip()=='': continue
-                ab_values.append(float(line.split()[6]))
-                
-                #if line.split()[3]=='m': ab_values.append(float(line.split()[4]))
-                #if line.split()[3]=='p': ab_values.append(float(line.split()[5]))
 
+                if ab_choice==0: #estimated abundance
+                    ab_values.append(float(line.split()[6]))
+                elif ab_choice==1: #snp reads coverage
+                    if line.split()[3]=='m': ab_values.append(float(line.split()[4]))
+                    if line.split()[3]=='p': ab_values.append(float(line.split()[5]))
+                else:
+                    print('unknown --ab val:%d'%ab_choice)
+                    pdb.set_trace()
     #pdb.set_trace()
 
+    if '--step' in args:
+        step = int(args[args.index('--step')+1])
+    else:
+        step = 1
+    
     ab_percentile_file = args[args.index('-o')+1]
     with open(ab_percentile_file, 'w') as f:
-        for qt in xrange(0,100,1):
+        for qt in xrange(0,100,step):
             thre = np.percentile(ab_values, qt)
             f.write('%d\t%.2f\n'%(qt, thre))
     #pdb.set_trace()
