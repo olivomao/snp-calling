@@ -241,9 +241,9 @@ We provde a simple and quick check of SNP calling performance in terms of mis-de
 
 ~~~
 python run_abSNP.py --check
-					--snp_res <snpRes>
-					--snp_m <snpM>
-					--snp_p <snpP>                     
+                    --snp_res <snpRes>
+		    --snp_m <snpM>
+		    --snp_p <snpP>                     
                                                 
 ~~~
 
