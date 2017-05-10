@@ -2,6 +2,32 @@ TBD:
 - snp_call non para or parallel --> serial
 - ExpressionLevel2Coverage: improper using L, N and exp_sum may be the reason why prev ideal coverage is worse than rsem coverage
 
+2017/5/9:
+
+commit summary: add manual (README, run_abSNP.py, run_demo.sh) and modify relevant changes. Detailed analysis/evaluation moved to main_evaluations.
+
+add run_abSNP.py and run_demo.sh (snp sim; read sim; snp call; simple evaluation) for external users
+
+relevant modifications include:
+
+	quantification.py: add num_p for RSEM1 (external users may not have 20 cores to run STAR)
+
+	tool_address.py: add MacOS path for STAR
+
+	batch_run_parallel_modi.py
+	- use Python multiprocess instead of GNU parallel
+	- make do_para_count produce consistent count_x/count_x_altInfo naming for later process when num_p=1
+
+	final_caller19thjuly_m.py
+	- remove progress bar 
+
+	para_operations.py
+	- fix a bug for para_count_merge when input dirs are relative paths
+
+move detailed evaluation into main_evaluations
+
+in addition, write README to help abSNP used by external users
+
 2017/5/8:
 
 commit summary: add codes to support roc and sens analysis (opt 4, group snp reads cov)

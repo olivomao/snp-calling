@@ -15,7 +15,7 @@ def main():
 #SE reads
 #external
 #estimate abundance level using RSEM (http://deweylab.biostat.wisc.edu/rsem/README.html)
-#python quantification.py --RSEM1 --ref fa -r reads.fq -g gtf -O rsemOutDir -p rsemPrefixName
+#python quantification.py --RSEM1 --ref fa -r reads.fq -g gtf -O rsemOutDir -p rsemPrefixName [--num_p num_p]
 
 def RSEM1(args): #(ref_address, readFQ_address, BED_address, gtf_address):
 
@@ -26,6 +26,10 @@ def RSEM1(args): #(ref_address, readFQ_address, BED_address, gtf_address):
     gtf_address =args[args.index('-g')+1]
     rsemOutDir = args[args.index('-O')+1]
     rsemPrefixName = args[args.index('-p')+1]
+    if '--num_p' in args:
+        num_p = int(args[args.index('--num_p')+1])
+    else:
+        num_p = 1
     name = '%s/%s'%(rsemOutDir, rsemPrefixName)
     
     cmd = 'mkdir -p %s'%rsemOutDir
@@ -35,10 +39,10 @@ def RSEM1(args): #(ref_address, readFQ_address, BED_address, gtf_address):
     rsem_estim_command = rsemPath + '/rsem-calculate-expression'
    
     #cmd = rsem_index_command + ' --star -p 20 --star-path %s --gtf '%STAR_path + gtf_address + ' ' + ref_address + ' '  + name
-    cmd = rsem_index_command + ' --star -p 20 --star-path %s --gtf '%STAR_path + gtf_address  + ' ' + ref_address + ' '  + name
+    cmd = rsem_index_command + ' --star -p %d '%num_p+' --star-path %s --gtf '%STAR_path + gtf_address  + ' ' + ref_address + ' '  + name
     run_cmd(cmd)
 
-    cmd = rsem_estim_command + ' --star -p 20 --star-path %s '%STAR_path + readFQ_address+ ' ' + name + ' ' + name
+    cmd = rsem_estim_command + ' --star -p %d '%num_p+' --star-path %s '%STAR_path + readFQ_address+ ' ' + name + ' ' + name
     run_cmd(cmd)
 
     RSEM_result_address = name + '.isoforms.results'
@@ -95,7 +99,7 @@ usage:
 
 #quantify rna-seq onto transcriptome, output: rsemOutDir/rsemPrefixName.isoforms.results
 #
-python quantification.py --RSEM1 --ref fa -r reads.fq -g gtf -O rsemOutDir -p rsemPrefixName (e.g. chr15)
+python quantification.py --RSEM1 --ref fa -r reads.fq -g gtf -O rsemOutDir -p rsemPrefixName (e.g. chr15) [--num_p num_p]
 
 #generate rsem coverage based on rsem quantification results, output: exon_address (by product), and estimated rsem Coverage
 #

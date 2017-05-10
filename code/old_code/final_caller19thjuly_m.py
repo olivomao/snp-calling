@@ -271,7 +271,8 @@ def final_caller(input_fn_count_file, # = '/count_sample.txt',
 
     #pdb.set_trace()
     num_lines = sum(1 for line in open(Count_file))
-    bar = Bar('Processing', max=num_lines)
+    cnt_p = 0; cnt_q = 0; cnt_T = num_lines/20;
+    #bar = Bar('Processing', max=num_lines)
     #pdb.set_trace()
     
     with open(Count_file) as counts:
@@ -280,9 +281,15 @@ def final_caller(input_fn_count_file, # = '/count_sample.txt',
         #reader = csv.reader(counts) #, delimiter='\t')
         
         for row in reader:
+            cnt_p += 1
+            if cnt_p >= cnt_T:
+                cnt_p = 0
+                cnt_q += 5
+                print('%d %% processed'%cnt_q)
+                
             if len(row)==1:
                 row = row[0].split()
-            bar.next()
+            #bar.next()
             if float(row[3])==0:
                 continue
             elif len(row) >= 8:
@@ -306,7 +313,7 @@ def final_caller(input_fn_count_file, # = '/count_sample.txt',
                     #pdb.set_trace()
                     write_row_res(row_res, ofile)
                     snp_found(row_res, ofile_snp_found)
-        bar.finish()
+        #bar.finish()
                 
     #Count_file.close()
     ofile.close()

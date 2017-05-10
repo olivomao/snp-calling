@@ -1,0 +1,4 @@
+#gPos	#_m_reads	#_t_reads
+5	2	0
+13	0	0
+37	0	1

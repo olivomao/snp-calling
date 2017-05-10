@@ -55,6 +55,7 @@ def do_para_count(split_sam_dir,
                   num_q=-1):
 
     count_split_dir0 = '/count_x/'
+    count_split_dir0_alt = '/count_x_altInfo/'
     count_split_dir1 = '/count_y/'
 
     if flag==False:
@@ -68,6 +69,7 @@ def do_para_count(split_sam_dir,
     num_batches = num_p / num_q
     for ith_batch in range(num_batches):
 
+        '''
         cmd = 'parallel python %scount_read_lambda.py '%code_folder+\
               split_sam_dir+' '+\
               split_sam_pre_fn + '{} '+\
@@ -81,9 +83,35 @@ def do_para_count(split_sam_dir,
         for i in xrange(ith_batch*num_q, (ith_batch+1)*num_q):
             cmd = cmd + ' %02d'%i
 
-        #pdb.set_trace()
+        pdb.set_trace()
+        run_cmd(cmd)
+        '''
+        cmds = []
+        for i in xrange(ith_batch*num_q, (ith_batch+1)*num_q):
+            cmd = 'python %scount_read_lambda.py '%code_folder+\
+                   split_sam_dir+' '+\
+                   split_sam_pre_fn + '%02d '%i+\
+                   ref_address + ' ' +\
+                   cov_address + ' ' +\
+                   count_split_dir0 + ' '+\
+                   'count_x%02d.txt '%i+\
+                   repr(num_p)+' '
+            cmds.append(cmd)
+        run_cmds(cmds)
+
+    if num_p==1: #to incorporate num_p=1 in para mode
+        file_old = split_sam_dir +'/'+count_split_dir0 + '/count_x00.txt '
+        file_new = split_sam_dir +'/'+count_split_dir0 + '/count_x00_region_00.txt'
+        cmd = 'mv %s %s'%(file_old, file_new)
+        #pdb.set_trace();
         run_cmd(cmd)
 
+        file_old = split_sam_dir +'/'+count_split_dir0 + '/count_x00_altInfo.txt '
+        file_new = split_sam_dir +'/'+count_split_dir0_alt + '/count_x_altInfo00_region_00.txt'
+        run_cmd('mkdir -p %s'%(split_sam_dir +'/'+count_split_dir0_alt + '/'))
+        cmd = 'mv %s %s'%(file_old, file_new)
+        run_cmd(cmd)
+        
     if clear == 1:        
         for i in range(num_split_sam_files):
             split_sam_file = '%s/%s%02d'%(split_sam_dir, split_sam_pre_fn, i)
@@ -115,6 +143,7 @@ def do_merge_count_x_and_altInfo(split_sam_dir,
         return
 
     if code_folder != '': code_folder+='/'
+    '''
     cmd = 'parallel python %spara_operations.py para_count_merge '%code_folder+\
           split_sam_dir+count_split_dir0+' '\
           'count_x'+' '+\
@@ -127,7 +156,20 @@ def do_merge_count_x_and_altInfo(split_sam_dir,
         cmd = cmd + ' %02d'%i
     #pdb.set_trace()
     run_cmd(cmd)
-
+    '''
+    
+    cmds = []
+    for i in range(num_split_sam_files):
+          cmd = 'python %spara_operations.py para_count_merge '%code_folder+\
+                split_sam_dir+count_split_dir0+' '\
+                'count_x'+' '+\
+                'region_%02d.txt'%i+' '+\
+                repr(num_p)+' '+\
+                split_sam_dir+count_split_dir1 + ' '+\
+                'count_y%02d.txt '%i
+          cmds.append(cmd)
+    run_cmds(cmds)
+        
     if clear==1:
         for i in range(num_split_sam_files):
             for j in range(num_split_sam_files):
@@ -209,6 +251,7 @@ def do_para_caller(split_sam_dir,
         return [para_caller_op_pre1, para_caller_op_pre2, para_caller_op_pre3]
     
     if code_folder != '': code_folder+='/'
+    '''
     cmd = 'parallel python %sfinal_caller19thjuly_m.py '%code_folder+\
           count_split_dir + ' '+\
           'count_y{}.txt '+\
@@ -220,6 +263,18 @@ def do_para_caller(split_sam_dir,
     for i in range(num_p):
         cmd = cmd + ' %02d'%i
     run_cmd(cmd)
+    '''
+    cmds = []
+    for i in range(num_p):
+        cmd = 'python %sfinal_caller19thjuly_m.py '%code_folder+\
+          count_split_dir + ' '+\
+          'count_y%02d.txt '%i+\
+          caller_op_dir+'caller_op_y%02d.txt '%i+\
+          caller_op_dir+'caller_op_exception_y%02d.txt '%i+\
+          caller_op_dir+'caller_op_snp_y%02d.txt '%i+\
+          repr(Threshold_num_reads)
+        cmds.append(cmd)
+    run_cmds(cmds)
 
     if clear==1:
         for i in range(num_p):

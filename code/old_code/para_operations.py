@@ -12,6 +12,7 @@ Created on Wed Sep 30 12:40:46 2015
 
 """
 
+import os
 import os.path
 import subprocess
 import pdb
@@ -542,10 +543,14 @@ if __name__ == "__main__":
         mode = sys.argv[1]
         if mode=='para_count_merge':
             count_x_dir = sys.argv[2]
+            if count_x_dir[0]!='/': #a relative path
+                count_x_dir = os.getcwd()+'/'+count_x_dir
             count_x_fn1 = sys.argv[3] #count_x_??_region_00.txt
             count_x_fn2 = sys.argv[4]
             num_f = int(sys.argv[5]) #num_p
             count_y_dir = sys.argv[6]
+            if count_y_dir[0]!='/':
+                count_y_dir = os.getcwd()+'/'+count_y_dir
             subprocess.call('mkdir -p '+count_y_dir, shell=True)
             count_y_fn = sys.argv[7]
             #pdb.set_trace()
