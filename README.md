@@ -1,5 +1,4 @@
----
-### Topics
+# Topics
 
 <a href='#intro'> Introduction </a>
 
@@ -21,7 +20,7 @@
 
 ---
 
-### Introduction <a id='intro'></a>
+# Introduction <a id='intro'></a>
 
 abSNP is an RNA-Seq SNP calling software. It takes raw reads or read alignment as input, and output SNP candidates. Unlike existing SNP callers, it explores abundance estimation and is able to detect SNPs at repetitive genomic regions.
 
@@ -29,7 +28,7 @@ This software is developed by [Shunfu Mao](shunfu@uw.edu) and [Sreeram Kannan](k
 
 ---
 
-### Work Flow
+# Work Flow
 
 The software of abSNP mainly contains three parts:
 
@@ -43,15 +42,15 @@ We also provide a simple and quick check of performance in terms of mis-detectio
 
 ---
 
-### Installation <a id='install'></a>
+# Installation <a id='install'></a>
 
-####System Requirement
+## System Requirement
 
 Unix system (e.g. Ubuntu).
 
 We have not tested on Mac system but it should work if you change STAR_path in tool_address.py for Mac option.
 
-####Steps
+## Steps
 
 1) At terminal, create a folder to download codes:
 
@@ -97,7 +96,7 @@ intervaltree | pip install intervaltree
 
 ---
 
-### Demo <a id='demo'></a>
+# Demo <a id='demo'></a>
 
 To check the installation or to see how the abSNP is used, you can go to the main code folder as your current working directory, and run dem. For example:
 
@@ -121,11 +120,11 @@ Simple statistics will be printed on screen by comparing the ground truth SNPs i
 
 ---
 
-### Usage 1 : SNP Simulator <a id='snp_sim'></a>
+# Usage 1 : SNP Simulator <a id='snp_sim'></a>
 
 Based on a reference transcriptome (a set of RNA transcripts), the simulator assigns rand expression levels for every RNA transcript independently for each maternal and paternal allele. Then random snps restricted to these RNA transcripts are generated for each allele. The genomes of target alleles that contain SNPs are also generated.
 
-####Command
+## Command
 
 ~~~
 python run_abSNP.py --snp_simulator
@@ -136,7 +135,7 @@ python run_abSNP.py --snp_simulator
                     --NumSNP <numSNP>
 ~~~
 
-####Input
+## Input
 
 argument | description
 ---- | ----
@@ -146,7 +145,7 @@ argument | description
 \--refGenome <refGenomeFile\> | path of the reference genome containing one chromosome
 \--NumSNP <numSNP\> | an integer value in [1, inf) to specify the number of SNPs generated per allele
 
-####Output
+## Output
 
 files | description
 ---- | ----
@@ -156,11 +155,11 @@ Tar_m.txt, Tar_p.txt | genomes (one chromosome) of target alleles that contain t
 
 ---
 
-### Usage 2 : Read Simulator <a id='read_sim'></a>
+# Usage 2 : Read Simulator <a id='read_sim'></a>
 
 Sample reads from the transcriptome of target maternal and paternal alleles. The amount of reads sampled from per RNA transcript is specified by expression files. The number of reads per allele, the read length and error rate are also required.
 
-####Command
+## Command
 ~~~
 python run_abSNP.py --read_simulator
                     --tarGenome_m <tarGenome_m>
@@ -175,7 +174,7 @@ python run_abSNP.py --read_simulator
 
 ~~~
 
-####Input
+## Input
 argument | description
 ---- | ----
 \--tarGenome_m <tarGenome_m\> | path of the target maternal genome, containing one chromosome, in fasta format. Generated from SNP simulator.
@@ -188,7 +187,7 @@ argument | description
 \--readLength <readLength\> | integer value. Specify the read length (e.g. 100).
 \--errRate <errRate\> | float value. Specify the read error rate (e.g. 0.01)
 
-####Output
+## Output
 
 files | description
 ---- | ----
@@ -196,9 +195,9 @@ merged_reads.fq | the generated simulated reads in fastq format, including reads
 
 ---
 
-### Usage 3 : SNP Calling <a id='snp_call'></a>
+# Usage 3 : SNP Calling <a id='snp_call'></a>
 
-####Command
+## Command
 
 ~~~
 python run_abSNP.py --call_snps
@@ -213,7 +212,7 @@ python run_abSNP.py --call_snps
                                                 
 ~~~
 
-####Input
+## Input
 
 argument | description
 ---- | ----
@@ -226,7 +225,7 @@ argument | description
 \--alpha <alpha\> | a float value between 0 and 1. 0 corresponds to minimum false positive and 1 corresponds to max sensitivity.
 \--outDir <outDir\> | ath of the directory to store the file of called SNP candidates.
 
-####Output
+## Output
 
 files | description
 ---- | ----
@@ -234,11 +233,11 @@ snp_candidates.txt | SNPs called by abSNP. format, with tab separated columns. c
 
 ---
 
-### Usage 4 : Evaluation <a id='eval'></a>
+# Usage 4 : Evaluation <a id='eval'></a>
 
 We provde a simple and quick check of SNP calling performance in terms of mis-detection and false positive.
 
-####Command
+## Command
 
 ~~~
 python run_abSNP.py --check
@@ -248,7 +247,7 @@ python run_abSNP.py --check
                                                 
 ~~~
 
-####Input
+## Input
 
 argument | description
 ---- | ----
@@ -256,13 +255,13 @@ argument | description
 \--snp_m <snpM\> | path of ground truth SNPs from maternal allele of the target individual
 \--snp_p <snpP\> | path of ground truth SNPs from the paternal allele of the target individual
 
-####Output
+## Output
 
 Statistics of mis-detection and false positives will be printed on screen.
 
 ---
 
 
-### History<a id='history'></a>
+# History<a id='history'></a>
 
 2017.5.9 initial manual created
