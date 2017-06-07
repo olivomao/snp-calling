@@ -213,7 +213,8 @@ def gen_snpSum3(args):
                     #pdb.set_trace()
                     fp[i]+=1
                 elif rB_tB[1]!=snpSum3[gPos][1]:
-                    pdb.set_trace()
+                    #pdb.set_trace()
+                    print('fp due to incorrect tB: tB_true=%s tB_called=%s at file %s'%(snpSum3[gPos][1], rB_tB[1], f_description))
                     fp[i]+=1
         #pdb.set_trace()
         out_file_md_fp = '%s/snpSum3_md_fp.txt'%(outDir)

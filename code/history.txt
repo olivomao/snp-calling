@@ -2,6 +2,23 @@ TBD:
 - snp_call non para or parallel --> serial
 - ExpressionLevel2Coverage: improper using L, N and exp_sum may be the reason why prev ideal coverage is worse than rsem coverage
 
+2017/6/6:
+
+commit summary: add md/fp code for varscan and samtools
+
+run_abSNP.py: comment a pdb.set_trace()
+
+main_evaluation/evaluator.py: minor modi while debug varscan
+
+old_code/snp_oper.py, snp_res_statistics.py: comment debug code
+
+add test_scripts/test_other_softwares/:
+    test_samtools.py
+    test_varscan.py
+    evaluate_performance_othertools.py
+    in order to check md/fp res 
+
+
 2017/5/9:
 
 commit summary: add manual (README, run_abSNP.py, run_demo.sh) and modify relevant changes. Detailed analysis/evaluation moved to main_evaluations.

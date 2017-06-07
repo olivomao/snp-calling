@@ -197,7 +197,7 @@ def load_snps(snp_file):
             tB = tokens[3]
             if gPos in snps:
                 print('load_snps exception -- existing gPos: %s'%line)
-                pdb.set_trace()
+                #pdb.set_trace()
             else:
                 cnt += 1
                 snps[gPos] = [rB, tB]

@@ -301,7 +301,7 @@ def brief_check(args):
     print('...# of correct-detection (m):%d'%len(m_snps_cd))
     print('...# of correct-detection (p):%d'%len(p_snps_cd))
     
-    pdb.set_trace()
+    #pdb.set_trace()
 
     return
 

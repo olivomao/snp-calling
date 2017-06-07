@@ -128,7 +128,7 @@ def group_snps(snps_list_sorted):
                 p_snps_cd.append(snp_node)
                 #pdb.set_trace()    
             else:
-                pdb.set_trace()
+                #pdb.set_trace()
                 print('exception2')
                 
         
