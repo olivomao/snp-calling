@@ -2,6 +2,15 @@ TBD:
 - snp_call non para or parallel --> serial
 - ExpressionLevel2Coverage: improper using L, N and exp_sum may be the reason why prev ideal coverage is worse than rsem coverage
 
+2017/6/20:
+
+commit summary: minor modi for SNP analysis (uniquely/multiply mapped)
+
+main_evaluation/evaluate_performance.py: add file names while analyzing abSNP's contributing factors; minor changes for title display
+
+old_code/count_read_lambda.py: for RSEM alignment, consider a SNP is uniquely mapped or multiply mapped for alignments of ZW>=0.1
+
+
 2017/6/6:
 
 commit summary: add md/fp code for varscan and samtools

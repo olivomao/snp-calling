@@ -59,22 +59,29 @@ def evaluate_performance_batch(args):
     chrom = 'Chr15'
     refGenome = '/data1/shunfu1/SNPCalling/data_large_0_idealCov/%s.fa'%chrom
 
-    num_p = 1 #num parallel
+    num_p = 10 #num parallel
 
     cnt_format = 1 #0-e.g. C,I,lambda_bj,lambda_sum  1-e.g. bj,num_alt_mapping
 
-    snpSum3_folder_name = 'snpSum3_SnpLoc0Based_CntFormat1' #'snpSum3_SnpLoc0Based_CntFormat1'#'snpSum_3_debug_gen_count_sel' #'snpSum3_2' para applied
+    snpSum3_folder_name = 'snpSum3_SnpLoc0Based_CntFormat1_MAPQ0.1' #'snpSum3_SnpLoc0Based_CntFormat1'#'snpSum_3_debug_gen_count_sel' #'snpSum3_2' para applied
     #sensitivity_res_name = 'sensitivity_opt%d.txt'%groupValCalcOption
     #sensitivity_res_name = 'sensitivity_opt3_SnpReadCov_MultiMapSNP_rsem_uniqmap.txt' #'sensitivity_opt2_rsemAltMap_le0.txt' #'sensitivity_opt2.txt' #'sensitivity_opt2_rsemAltMap_ge1.txt'
     #sensitivity_res_name = 'sensitivity_opt3_SnpReadCov_UniqMapSNP.txt'
     #sensitivity_res_name = 'sensitivity_opt3_SnpReadCov_MultSNP_rsem_ge1.txt'
-    sensitivity_res_name = 'sensitivity_opt4.txt'
+    #sensitivity_res_name = 'sensitivity_opt4.txt'
+    #sensitivity_res_name = 'sensitivity_opt2_CntFormat1_MAPQ0.1.txt'
+    #sensitivity_res_name = 'sensitivity_opt2_CntFormat1_MAPQ0.1_GatkMult_RsemUniq.txt'
+    #sensitivity_res_name = 'sensitivity_opt2_CntFormat1_MAPQ0.1_GatkMult_RsemMult.txt'
+    #sensitivity_res_name = 'sensitivity_opt4_CntFormat1_MAPQ0.1_GatkMult_RsemUniq.txt'
+    sensitivity_res_name = 'sensitivity_opt4_CntFormat1_MAPQ0.1_GatkMult_RsemMult.txt'
 
     #### config - teps to run
     do_bam2sam = 0
     do_gen_count_selectively = 0
     do_gen_snpSum3 = 0
     do_detailed_sens_analysis = 1
+
+    pdb.set_trace()
 
 
     #### 0. auto configuration
@@ -280,12 +287,21 @@ def calc_sens_avg_stdev(args):
         #run_files[rf] = '/data1/shunfu1/SNPCalling//SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1/sensitivity_opt2_rsemAltMap_le0.txt'%(rf)
         #run_files[rf] = '/data1/shunfu1/SNPCalling//SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1/sensitivity_opt2_rsemAltMap_ge1.txt'%(rf)
 
+        #run_files[rf] = '/data1/shunfu1/SNPCalling/SimSNPs_MultiRun_%d/reads_N100K_L100_Err0.00/snpSum3_SnpLoc0Based_CntFormat1_MAPQ0.1/sensitivity_opt2_CntFormat1_MAPQ0.1_GatkMult_RsemUniq.txt'%(rf)
+        #run_files[rf] = '/data1/shunfu1/SNPCalling/SimSNPs_MultiRun_%d/reads_N100K_L100_Err0.00/snpSum3_SnpLoc0Based_CntFormat1_MAPQ0.1/sensitivity_opt2_CntFormat1_MAPQ0.1_GatkMult_RsemMult.txt'%(rf)
+
+        #run_files[rf] = '/data1/shunfu1/SNPCalling/SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1_MAPQ0.1/sensitivity_opt2_CntFormat1_MAPQ0.1_GatkMult_RsemUniq.txt'%(rf)
+        #run_files[rf] = '/data1/shunfu1/SNPCalling/SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1_MAPQ0.1/sensitivity_opt2_CntFormat1_MAPQ0.1_GatkMult_RsemMult.txt'%(rf)
+
+        #run_files[rf] = '/data1/shunfu1/SNPCalling/SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1_MAPQ0.1/sensitivity_opt4_CntFormat1_MAPQ0.1_GatkMult_RsemUniq.txt'%(rf)
+        run_files[rf] = '/data1/shunfu1/SNPCalling/SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1_MAPQ0.1/sensitivity_opt4_CntFormat1_MAPQ0.1_GatkMult_RsemMult.txt'%(rf)
+
         #run_files[rf] = '/data1/shunfu1/SNPCalling//SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1/sensitivity_opt1.txt'%(rf)
 
         #run_files[rf] = '/data1/shunfu1/SNPCalling//SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1/sensitivity_opt3.txt'%(rf)
         #run_files[rf] = '/data1/shunfu1/SNPCalling//SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1/sensitivity_opt3_SnpReadCov.txt'%(rf) sensitivity_opt3_SnpReadCov_MultiMapSNP
         #run_files[rf] = '/data1/shunfu1/SNPCalling//SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1/sensitivity_opt3_SnpReadCov_MultSNP_rsem_ge1.txt'%(rf) 
-        run_files[rf] = '/data1/shunfu1/SNPCalling//SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1/sensitivity_opt4.txt'%(rf) 
+        #run_files[rf] = '/data1/shunfu1/SNPCalling//SimSNPs_MultiRun_%d/reads_N1m_L100_Err0.01/snpSum3_SnpLoc0Based_CntFormat1/sensitivity_opt4.txt'%(rf) 
         #run_cmd('cp %s tmp/sensitivity_opt3_SnpReadCov_MultMapSNP_%d.txt'%(run_files[rf], rf))
 
     #parse structure
@@ -711,6 +727,8 @@ def plot_sens(args):
         bar_width = 0.1
         index = float(bar_width*2)/3+np.arange(len(groupLabels))
 
+        #pdb.set_trace()
+
         for i in range(len(callerLabels)):
             if data_stdev is None:
                 yerr = None
@@ -809,8 +827,11 @@ def plot_roc(args):
     x_lab = args[args.index('--x_lab')+1]
     y_line_id = int(args[args.index('-y')+1])
     y_lab = args[args.index('--y_lab')+1]
-    tit = args[args.index('--title')+1]
-    tit = tit.decode('string_escape')
+    if '--title' in args:
+        tit = args[args.index('--title')+1]
+        tit = tit.decode('string_escape')
+    else:
+        tit = ''
     #pdb.set_trace()
 
     if '--dummy_tot_err_line' in args:
@@ -855,17 +876,17 @@ def plot_roc(args):
         ss = 65
         tt = 189
         cl = 'red'
-        ax.annotate('m = %d - f'%tt, xy=(ss,tt-ss), xytext=(ss+15,tt-ss+10), arrowprops=dict(facecolor=cl, shrink=0.05)) #, textcoords='data')
+        ax.annotate('m + f = e = %d (e: total error)'%tt, xy=(ss,tt-ss), xytext=(ss+15,tt-ss+10), arrowprops=dict(facecolor=cl, shrink=0.05)) #, textcoords='data')
 
         ss = 55
         tt = 127
         cl = 'blue'
-        ax.annotate('m = %d - f'%tt, xy=(ss,tt-ss), xytext=(ss+15,tt-ss+10), arrowprops=dict(facecolor=cl, shrink=0.05)) #, textcoords='data')
+        ax.annotate('m + f = e = %d'%tt, xy=(ss,tt-ss), xytext=(ss+15,tt-ss+10), arrowprops=dict(facecolor=cl, shrink=0.05)) #, textcoords='data')
 
         ss = 75
         tt = 102
         cl = 'blue'
-        ax.annotate('m = %d - f'%tt, xy=(ss,tt-ss), xytext=(ss+20,tt-ss+15), arrowprops=dict(facecolor=cl, shrink=0.05)) #, textcoords='data')
+        ax.annotate('m + f = e = %d'%tt, xy=(ss,tt-ss), xytext=(ss+20,tt-ss+15), arrowprops=dict(facecolor=cl, shrink=0.05)) #, textcoords='data')
         '''
 
         if dummy_line==1:
@@ -883,7 +904,8 @@ def plot_roc(args):
 
     plt.xlabel(x_lab)
     plt.ylabel(y_lab)
-    plt.title(tit)
+    if tit != '':
+        plt.title(tit)
     lgd = plt.legend(loc='upper right')
     ax.grid(True)
 

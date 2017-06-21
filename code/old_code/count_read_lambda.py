@@ -668,7 +668,7 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
                             if sel_snp_loc is None:
                                 read_group = [r for r in read_group if r.ZW>=0.1]###rsem sam only
                             else: #for analysis purpose
-                                read_group = [r for r in read_group if r.ZW>0]###rsem sam only 
+                                read_group = [r for r in read_group if r.ZW>=0.1]###rsem sam only 
 
                         #if len(read_group)>0 and read_group[0].id=='uc002bna.2_e_32_chr15_89399479': pdb.set_trace()
 
@@ -778,7 +778,7 @@ def generate_count_file(reads, ref_address, cov_address, count_fn='count.txt', c
                 if sel_snp_loc is None:
                     read_group = [r for r in read_group if r.ZW>=0.1]###rsem sam only
                 else: #for analysis purpose
-                    read_group = [r for r in read_group if r.ZW>0]###rsem sam only 
+                    read_group = [r for r in read_group if r.ZW>=0.1]###rsem sam only 
 
             '''
             sameZW_flag=True
