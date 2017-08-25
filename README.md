@@ -32,7 +32,7 @@ This software is developed by [Shunfu Mao](shunfu@uw.edu) and [Sreeram Kannan](k
 
 # Citation <a id='cite'></a>
 
-If you would like to cite abSNP, please find more information [here](http://dx.doi.org/10.4230/LIPIcs.WABI.2017.15).
+abSNP: RNA-Seq SNP Calling in Repeat Regions via Abundance Estimation. Shunfu Mao, Soheil Mohajer, Kannan Ramchandran, David Tse, and Sreeram Kannan. The 17th Workshop on Algorithms in Bioinformatics (WABI), Boston, MA, USA, Aug. 2017. [More details here](http://dx.doi.org/10.4230/LIPIcs.WABI.2017.15).
 
 ---
 
