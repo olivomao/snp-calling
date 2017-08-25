@@ -2,6 +2,8 @@
 
 <a href='#intro'> Introduction </a>
 
+<a href='#cite'> Citation </a>
+
 <a href='#install'> Installation </a>
 
 <a href='#demo'> Demo </a>
@@ -25,6 +27,12 @@
 abSNP is an RNA-Seq SNP calling software. It takes raw reads or read alignment as input, and output SNP candidates. Unlike existing SNP callers, it explores abundance estimation and is able to detect SNPs at repetitive genomic regions.
 
 This software is developed by [Shunfu Mao](shunfu@uw.edu) and [Sreeram Kannan](ksreeram@uw.edu) at University of Washington (UW), and [Soheil Mohajer](soheil@umn.edu) at University of Minnesota, and is currently maintained at UW. 
+
+---
+
+# Citation <a id='cite'></a>
+
+If you would like to cite abSNP, please find more information [here](http://dx.doi.org/10.4230/LIPIcs.WABI.2017.15).
 
 ---
 
