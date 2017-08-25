@@ -18,6 +18,8 @@
 
 - <a href='#eval'> Usage 4: Evaluation </a>
 
+<a href='#news'> News </a>
+
 <a href='#history'> History </a>
 
 ---
@@ -32,7 +34,7 @@ This software is developed by [Shunfu Mao](shunfu@uw.edu) and [Sreeram Kannan](k
 
 # Citation <a id='cite'></a>
 
-abSNP: RNA-Seq SNP Calling in Repeat Regions via Abundance Estimation. Shunfu Mao, Soheil Mohajer, Kannan Ramchandran, David Tse, and Sreeram Kannan. The 17th Workshop on Algorithms in Bioinformatics (WABI), Boston, MA, USA, Aug. 2017. [More details here](http://dx.doi.org/10.4230/LIPIcs.WABI.2017.15).
+abSNP: RNA-Seq SNP Calling in Repeat Regions via Abundance Estimation. Shunfu Mao, Soheil Mohajer, Kannan Ramchandran, David Tse, and Sreeram Kannan. The 17th Workshop on Algorithms in Bioinformatics (WABI), Boston, MA, USA, Aug. 2017. [Details](http://dx.doi.org/10.4230/LIPIcs.WABI.2017.15).
 
 ---
 
@@ -268,8 +270,11 @@ argument | description
 Statistics of mis-detection and false positives will be printed on screen.
 
 ---
+# News<a id='news'></a>
 
+2017.8.23 We presented abSNP in WABI.
 
+---
 # History<a id='history'></a>
 
 2017.5.9 initial manual created
