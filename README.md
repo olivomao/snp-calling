@@ -2,7 +2,7 @@
 
 <a href='#intro'> Introduction </a>
 
-<a href='#cite'> Citation </a>
+<a href='#cite'> Publication </a>
 
 <a href='#install'> Installation </a>
 
@@ -32,9 +32,9 @@ This software is developed by [Shunfu Mao](shunfu@uw.edu) and [Sreeram Kannan](k
 
 ---
 
-# Citation <a id='cite'></a>
+# Publication <a id='cite'></a>
 
-abSNP: RNA-Seq SNP Calling in Repeat Regions via Abundance Estimation. Shunfu Mao, Soheil Mohajer, Kannan Ramchandran, David Tse, and Sreeram Kannan. The 17th Workshop on Algorithms in Bioinformatics (WABI), Boston, MA, USA, Aug. 2017. [paper](http://dx.doi.org/10.4230/LIPIcs.WABI.2017.15)[presentation](https://www.youtube.com/watch?v=WpOkdY3CDgM).
+abSNP: RNA-Seq SNP Calling in Repeat Regions via Abundance Estimation. Shunfu Mao, Soheil Mohajer, Kannan Ramchandran, David Tse, and Sreeram Kannan. The 17th Workshop on Algorithms in Bioinformatics (WABI), Boston, MA, USA, Aug. 2017. [\[paper\]](http://dx.doi.org/10.4230/LIPIcs.WABI.2017.15) [\[presentation\]](https://www.youtube.com/watch?v=WpOkdY3CDgM).
 
 ---
 
@@ -277,4 +277,5 @@ Statistics of mis-detection and false positives will be printed on screen.
 ---
 # History<a id='history'></a>
 
+2017.9.3 Presentation added to Youtube.
 2017.5.9 initial manual created
