@@ -277,5 +277,6 @@ Statistics of mis-detection and false positives will be printed on screen.
 ---
 # History<a id='history'></a>
 
-2017.9.3 Presentation added to Youtube.
+2017.9.3 Presentation added to Youtube.<p>
+
 2017.5.9 initial manual created
