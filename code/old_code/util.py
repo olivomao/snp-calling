@@ -52,3 +52,8 @@ def seqs_to_fasta(filename, seqs):
             f.write(">{}\n".format(seq_name))
             for i in xrange(0, len(seq), LINE_LENGTH):
                 f.write("{}\n".format(seq[i:i+LINE_LENGTH]))
+
+def parent_dir(dir_path):
+    dir_path = dir_path.split('/')
+    dir_path = [itm for itm in dir_path if itm != '']
+    return '/'+'/'.join(dir_path[:-1])+'/'
